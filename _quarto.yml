@@ -1,0 +1,85 @@
+project:
+  type: website
+  output-dir: _site
+  # solo queste pagine diventano il sito: gli altri .qmd (template,
+  # bozze, report del Modulo 9) restano fuori
+  render:
+    - index.qmd
+    - preparazione.qmd
+    - dati.qmd
+    - modulo1_intro.qmd
+    - modulo2_data_cleaning.qmd
+    - modulo3_data_cleaning_avanzato.qmd
+    - modulo4_tabelle_e_aggregazione.qmd
+    - modulo5_ggplot_parte1.qmd
+    - modulo6_ggplot_parte2.qmd
+    - modulo7_trasformazione_e_integrazione.qmd
+    - modulo8_altri_grafici.qmd
+    - modulo9_quarto.qmd
+    - licenza.qmd
+  # prima di ogni render crea lo zip dei materiali per gli studenti
+  pre-render: crea_zip_materiali.R
+  resources:
+    - webex.css
+    - webex.js
+    - materiali_corso_R.zip   # scaricabile da "Prepararsi al corso"
+
+lang: it
+
+website:
+  title: "Corso base di R"
+  favicon: immagini/logo_iss.png
+  page-navigation: true
+  back-to-top-navigation: true
+  search: true
+  navbar:
+    left:
+      - href: index.qmd
+        text: Home
+      - href: preparazione.qmd
+        text: Prepararsi al corso
+      - href: dati.qmd
+        text: I dati del corso
+      - text: Moduli
+        menu:
+          - text: "Giorno 1"
+          - href: modulo1_intro.qmd
+            text: "Modulo 1 – Importazione ed esplorazione dei dati"
+          - href: modulo2_data_cleaning.qmd
+            text: "Modulo 2 – Pulizia e preparazione dei dati"
+          - text: "---"
+          - text: "Giorno 2"
+          - href: modulo3_data_cleaning_avanzato.qmd
+            text: "Modulo 3 – Pulizia dei dati: approfondimento"
+          - href: modulo4_tabelle_e_aggregazione.qmd
+            text: "Modulo 4 – Tabelle e aggregazione dei dati"
+          - text: "---"
+          - text: "Giorno 3"
+          - href: modulo5_ggplot_parte1.qmd
+            text: "Modulo 5 – Grafici con ggplot2 (parte 1)"
+          - href: modulo6_ggplot_parte2.qmd
+            text: "Modulo 6 – Grafici con ggplot2 (parte 2)"
+          - text: "---"
+          - text: "Giorno 4"
+          - href: modulo7_trasformazione_e_integrazione.qmd
+            text: "Modulo 7 – Trasformazione e integrazione dei dati"
+          - href: modulo8_altri_grafici.qmd
+            text: "Modulo 8 – Altri grafici"
+          - text: "---"
+          - text: "Giorno 5"
+          - href: modulo9_quarto.qmd
+            text: "Modulo 9 – Report automatici con Quarto"
+  page-footer:
+    left: "© 2026 Istituto Superiore di Sanità – Corso base di R, 30 novembre – 4 dicembre 2026"
+    right:
+      - href: licenza.qmd
+        text: Copyright e licenza
+
+format:
+  html:
+    theme:
+      - cosmo
+      - iss.scss   # colori del template ISS
+    # indice di ogni pagina nel menu laterale a sinistra
+    toc: true
+    toc-location: left

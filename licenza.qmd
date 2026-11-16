@@ -1,0 +1,90 @@
+---
+title: "Copyright e licenza"
+toc-title: "In questa pagina"
+---
+
+## Il corso
+
+Il *Corso base di R per la gestione e analisi dei dati* è stato
+sviluppato per la prima volta nel 2026 dal Dipartimento Malattie
+Infettive dell'Istituto Superiore di Sanità, per fornire al personale
+dell'Istituto le basi della gestione, dell'analisi e della presentazione
+dei dati con il software R e l'ambiente RStudio.
+
+Gli autori del materiale di questo corso sono:\
+Andrea Cannone,
+Alberto Mateo Urdiales,
+Daniele Petrone,
+Chiara Sacco
+
+Per la preparazione del corso sono stati utilizzati come riferimento anche i materiali di Applied Epi, 
+in particolare il corso Introduction to R for Applied Epidemiology, e il manuale The Epidemiologist R Handbook. 
+Alcune esercitazioni sono state adattate e integrate in funzione dei contenuti e degli obiettivi del corso.
+
+## Licenza
+
+Le informazioni e i documenti di questo sito possono essere riprodotti
+e distribuiti, in tutto o in parte, con qualsiasi mezzo e in qualsiasi
+formato, per scopi non commerciali, a condizione che l'Istituto
+Superiore di Sanità sia sempre citato come fonte del materiale. La
+citazione deve comparire in ogni copia del materiale. Qualsiasi
+riproduzione a scopo commerciale richiede una licenza o
+un'autorizzazione preventiva.
+
+Sei libero di:
+
+-   **Condividere**: copiare e distribuire il materiale
+-   **Remixare**: adattare e costruire nuovo materiale a partire da
+    questo
+
+Alle seguenti condizioni:
+
+-   **Attribuzione**: devi attribuire il materiale nel modo specificato
+    dall'autore o dal licenziante (ma non in un modo che suggerisca che
+    essi avallino te o il tuo utilizzo dell'opera). Il modo migliore per
+    farlo è mantenere invariato l'elenco dei contributori: fonti, autori
+    e revisori.
+-   **Condividi allo stesso modo**: se modifichi, trasformi o costruisci
+    nuovo materiale a partire da questo, puoi distribuire il risultato
+    solo con una licenza uguale o simile a questa. Le modifiche apportate
+    devono essere documentate. A questa condizione, puoi aggiungere il
+    tuo nome all'elenco dei contributori.
+-   **Notifica**: se utilizzi il materiale, scrivi a
+    [chiara.sacco\@iss.it](mailto:chiara.sacco@iss.it).
+-   Non puoi vendere questo materiale da solo, ma puoi utilizzarlo come
+    parte di un'attività didattica.
+
+Resta inteso che:
+
+-   **Rinuncia**: una qualsiasi delle condizioni sopra può essere
+    derogata previa autorizzazione del titolare dei diritti d'autore.
+-   **Pubblico dominio**: se l'opera, o un suo elemento, è di pubblico
+    dominio ai sensi della legge applicabile, tale condizione non è in
+    alcun modo modificata dalla licenza.
+-   **Altri diritti**: la licenza non pregiudica in alcun modo i
+    seguenti diritti:
+    -   il diritto di utilizzo corretto ("fair dealing"/"fair use"), o
+        altre eccezioni e limitazioni al diritto d'autore applicabili;
+    -   i diritti morali dell'autore;
+    -   i diritti che altre persone possono avere sull'opera stessa o
+        sul modo in cui viene utilizzata, come i diritti di immagine o
+        di riservatezza.
+-   **Avviso**: per qualsiasi riutilizzo o distribuzione, devi rendere
+    chiari agli altri i termini della licenza di questo materiale,
+    mantenendo insieme l'opera e la licenza corrente.
+
+Questa licenza si basa su
+<http://creativecommons.org/licenses/by-sa/3.0/>.
+
+## Fonte dei dati e licenza
+
+Il dataset utilizzato nelle esercitazioni è stato predisposto a partire dai dati dello studio di Mateo-Urdiales et al. (2024), Risk of breakthrough infection and hospitalisation after COVID-19 primary vaccination by HIV status in four Italian regions during 2021, pubblicato su BMC Public Health (2024;24:1569).
+
+I dati sono stati adattati per finalità esclusivamente didattiche. Alcune variabili sono state simulate (età, regione, punteggio di Charlson, livello di anticorpi e CD4) e sono state introdotte intenzionalmente alcune anomalie, tra cui errori di codifica, valori mancanti, formati di data differenti e osservazioni duplicate, per consentire lo svolgimento delle esercitazioni di gestione e pulizia dei dati.
+
+Sono stati inoltre predisposti materiali e dati aggiuntivi per le esercitazioni, comprese le i dati relative alle regioni, ai richiami vaccinali e i confini geografici utilizzati per le mappe.
+
+I dati utilizzati nel corso non devono essere interpretati come dati originali dello studio né come stime epidemiologiche ufficiali.
+
+Per la descrizione completa dei dati vedi la pagina [I dati del
+corso](dati.qmd).

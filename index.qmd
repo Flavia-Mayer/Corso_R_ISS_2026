@@ -1,0 +1,83 @@
+---
+pagetitle: "Corso base di R per la gestione e analisi dei dati"
+toc-title: "In questa pagina"
+format:
+  html:
+    css: sito.css
+---
+
+::: home-loghi
+![](immagini/logo_iss.png){.logo-sx fig-alt="Logo dell'Istituto Superiore di Sanità"}
+![](immagini/logo_dip_malattie_infettive.png){.logo-dx fig-alt="Logo del Dipartimento Malattie Infettive"}
+:::
+
+::: home-titolo
+
+
+
+# Corso base di R per la gestione e analisi dei dati {.unnumbered .unlisted}
+
+Istituto Superiore di Sanità · Dipartimento Malattie Infettive\
+30 novembre – 4 dicembre 2026 · Aula Marotta
+:::
+
+Questo è il sito del corso. Qui trovi tutte le informazioni relativa al corso: come installare R, 
+i dati da usare, le esercitazioni e materiali di approfondimento.
+
+## Prima del corso
+
+Qualche giorno prima dell'inizio, segui le istruzioni della pagina
+[Prepararsi al corso](preparazione.qmd): installa R, RTools (solo
+Windows) e RStudio, installa i pacchetti e scarica la cartella dei
+materiali.
+
+## Obiettivi
+
+Il corso introduce all'uso di R per la gestione, l'analisi e la
+presentazione dei dati, seguendo l'intero flusso di lavoro:
+dall'importazione dei dati alla produzione di tabelle, grafici e report
+automatici.
+
+Al termine del corso sarai in grado di:
+
+1.  muoverti in R e RStudio, importare dati da fonti diverse,
+    verificarne la qualità, pulirli e trasformarli in base alle esigenze
+    dell'analisi;
+2.  produrre in autonomia analisi descrittive, tabelle, grafici e report
+    automatici;
+3.  continuare da solo a sviluppare competenze più avanzate e usare R
+    nel tuo lavoro quotidiano.
+
+## Programma del corso
+
+Ogni giornata ha due moduli, uno la mattina e uno il pomeriggio. Ogni
+modulo prevede una breve lezione (30 minuti), una dimostrazione dal vivo
+in R (15 minuti) e un'esercitazione individuale (90 minuti), seguita da
+una discussione insieme. Dal secondo giorno, la mattina si apre con la
+discussione degli argomenti del giorno precedente.
+
+| Giorno | Mattina | Pomeriggio |
+|----|----|----|
+| Lunedì 30 novembre | [Modulo 1 – Importazione ed esplorazione dei dati](modulo1_intro.qmd) | [Modulo 2 – Pulizia e preparazione dei dati](modulo2_data_cleaning.qmd) |
+| Martedì 1 dicembre | [Modulo 3 – Pulizia dei dati: approfondimento](modulo3_data_cleaning_avanzato.qmd) | [Modulo 4 – Tabelle e aggregazione dei dati](modulo4_tabelle_e_aggregazione.qmd) |
+| Mercoledì 2 dicembre | [Modulo 5 – Grafici con ggplot2 (parte 1)](modulo5_ggplot_parte1.qmd) | [Modulo 6 – Grafici con ggplot2 (parte 2)](modulo6_ggplot_parte2.qmd) |
+| Giovedì 3 dicembre | [Modulo 7 – Trasformazione e integrazione dei dati](modulo7_trasformazione_e_integrazione.qmd) | [Modulo 8 – Altri grafici](modulo8_altri_grafici.qmd) |
+| Venerdì 4 dicembre | [Modulo 9 – Report automatici con Quarto](modulo9_quarto.qmd) | Verifica dell'apprendimento: un breve report in R a partire da un nuovo dataset |
+
+: {tbl-colwidths="[20,40,40]"}
+
+## Gli script del corso
+
+Durante la settimana scriverai quattro script, che salverai nella
+cartella `script` dei materiali:
+
+| Script | Moduli |
+|----|----|
+| `pulizia_dati.R` | 1, 2 e 3 |
+| `tabelle_grouping.R` | 4 |
+| `plot.R` | 5, 6 e 8 |
+| `join.R` | 7 |
+
+Nella cartella `script/backup` trovi le versioni corrette dei quattro
+script, da usare per confrontarle con il tuo lavoro o per ripartire se
+qualcosa non funziona.

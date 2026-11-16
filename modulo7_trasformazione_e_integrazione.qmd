@@ -1,0 +1,2104 @@
+---
+output: html_document
+editor_options:
+  chunk_output_type: console
+execute:
+  warning: false
+  error: false
+knitr:
+  opts_chunk:
+    comment: ""
+format:
+  html:
+    css: webex.css
+    include-after-body: webex.js
+    df-print: default
+    toc: true
+    toc-depth: 4
+    toc-expand: 1
+editor:
+  markdown:
+    wrap: 72
+title: |
+  ![](immagini/logo_dmi.png){width=3in}
+---
+
+```{r}
+#| include: false
+pacman::p_load(
+  rio,
+  skimr,
+  janitor,
+  lubridate,
+  epikit,
+  gtsummary,
+  tidyverse,
+  webexercises
+)
+
+# dataset del giorno precedente e tabelle accessorie (nel corso si
+# trovano già nell'environment o si importano nel "Punto di partenza")
+# dati/ accanto al qmd (cartella corso_R_2026) oppure un livello sopra (ModuloN/)
+cartella_dati <- if (file.exists("dati/dati_clean.rds")) "dati" else "../dati"
+dati_clean <- import(file.path(cartella_dati, "dati_clean.rds"))
+regioni    <- import(file.path(cartella_dati, "regioni.rds"))
+richiami   <- import(file.path(cartella_dati, "richiami.rds"))
+```
+
+```{=html}
+<!-- ============================================================
+     NOTE PER IL DOCENTE (non compaiono nell'HTML)
+     - Esercitazione della mattina del giorno 4: i partecipanti
+       creano un nuovo script, script/join.R, che inizia con i
+       pacchetti e l'importazione di dati/dati_clean.rds,
+       dati/regioni.rds e dati/richiami.rds.
+     - Tempo previsto: 90 minuti. Il tempo stimato di ogni sezione è
+       indicato in un commento all'inizio della sezione. Le stime
+       sommano a circa 90 minuti. Se in aula il tempo non basta, le
+       parti più sacrificabili sono "Le righe che arrivano solo da
+       regioni" e "Riempire le celle vuote". Da non togliere:
+       "Copertura dei richiami per regione e stato HIV", che produce
+       richiami_regione_hiv.rds per il modulo 9 (ai partecipanti non
+       lo diciamo, per non anticipare).
+     - Nello script restano solo gli oggetti da tenere (regioni,
+       richiami, dati_regioni, richiami_largo, dati_richiami,
+       richiami_regione_hiv); tutti gli altri comandi, compresi gli
+       errori voluti, si scrivono nell'area di prova.
+     - I commenti "DIPENDE DAI DATI" segnalano testi o domande da
+       ricontrollare se cambia il dataset. Le risposte delle domande
+       con risposta calcolata si aggiornano da sole.
+     - Dati: dati_clean (dati/dati_clean.rds, 47.717
+       persone; region e hiv_status senza NA, esclusi nel Modulo 3) e le due tabelle
+       accessorie SIMULATE dati/regioni.rds e dati/richiami.rds
+       (create da strumenti_claude/simula_tabelle_modulo7.R; dal
+       12/11/2026 richiami.rds non ha più le 4 persone escluse nel
+       Modulo 3, quindi anti_join() trova solo i 3 id inventati)
+       Stesso
+       codice e stessi nomi di slide e demo. Il modulo 7 usa solo
+       funzioni spiegate nelle slide del modulo 7 o nei moduli 1-4.
+     ============================================================ -->
+```
+
+# **Corso introduttivo al software statistico R**
+
+# Modulo 07 Trasformazione e integrazione dei dati
+
+## Obiettivi del modulo
+
+-   Accodare due data frame con le stesse variabili con `bind_rows()`
+-   Unire due tabelle attraverso una chiave con i join di `{dplyr}`:
+    `left_join()`, `inner_join()`, `right_join()` e `full_join()`
+-   Controllare la chiave prima e dopo un join e riconoscere le righe
+    senza corrispondenza con `semi_join()` e `anti_join()`
+-   Riconoscere le chiavi duplicate e le righe che si moltiplicano
+-   Cambiare la forma dei dati, da lungo a largo con `pivot_wider()` e
+    da largo a lungo con `pivot_longer()`
+-   Combinare join, pivot e sintesi per gruppo in una tabella finale da
+    salvare
+
+## Formato dell'esercizio
+
+<!-- Il paragrafo sotto è fisso: -->
+
+Questo esercizio è progettato per essere una guida e per aiutarti a
+completarlo in autonomia. Ti consigliamo fortemente di provare a
+eseguire il codice prima di guardare le soluzioni. Per aiutarti, abbiamo
+incluso in alcuni punti dei suggerimenti che possono indirizzarti nella
+direzione giusta. Li troverai così:
+
+```{=html}
+<!-- ISTRUZIONI: Questo blocco "Suggerimento" va inserito ogni volta
+     che vuoi dare un aiuto parziale allo studente senza svelare
+     subito la soluzione (es. il nome di una funzione da usare, o un
+     argomento a cui prestare attenzione). Copia l'intero blocco
+     <details>...</details> e modifica solo il testo dopo </br>. -->
+```
+
+<details>
+
+<summary style="text-decoration: underline; color: darkgreen;">
+
+`r fontawesome::fa("lightbulb", fill = "gold")` Clicca per leggere un
+suggerimento
+
+</summary>
+
+</br>
+
+Questo è un suggerimento.
+
+</br>
+
+</details>
+
+Le soluzioni, invece, avranno questo aspetto:
+
+```{=html}
+<!-- ISTRUZIONI: Questo blocco "Soluzione" va inserito alla fine di
+     ogni esercizio (o sotto-punto) e deve contenere codice R
+     eseguibile e commentato. Copia l'intero blocco
+     <details>...</details> e sostituisci il codice di esempio. Se la
+     soluzione richiede più passaggi, aggiungi commenti # nel codice
+     per spiegare ogni passaggio. Ricorda: niente etichette (label)
+     nei chunk, come indicato nelle istruzioni generali. -->
+```
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+print("Questo è un esempio di soluzione")
+
+```
+
+</br>
+
+</details>
+
+Durante l'esercizio troverai anche domande a risposta multipla, che
+servono a verificare se stai seguendo correttamente lo svolgimento. Le
+domande saranno simili a questa:
+
+```{=html}
+<!-- ISTRUZIONI: Questo blocco "Domanda" usa il pacchetto
+     `{webexercises}` per creare quiz a risposta multipla
+     auto-correttivi. Copia l'intero blocco ::: {.callout-note}...:::
+     e:
+       - scrivi le opzioni di risposta nel vettore "opts"
+       - indica la risposta corretta con answer = "..."
+       - scrivi il testo della domanda dentro cat("Domanda: ...")
+     Inserisci una domanda ogni volta che vuoi far verificare allo
+     studente di aver capito un concetto chiave prima di proseguire. -->
+```
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+opts <- c(
+  "2",
+  "5",
+  answer = "4"
+)
+
+cat("Domanda di esempio: quanto fa 2 + 2?", longmcq(opts))
+
+```
+:::
+::::
+
+Lungo il modulo troverai anche due tipi di riquadri colorati. I riquadri
+**gialli** segnalano errori frequenti o punti in cui R si comporta in
+modo inatteso: leggili sempre, perché possono farti risparmiare tempo.
+
+```{=html}
+<!-- ISTRUZIONI: Il box giallo "Attenzione a …" va usato per avvisi
+     importanti: errori comuni, comportamenti di R che possono
+     sorprendere, passaggi da non saltare. Il titolo inizia sempre con
+     "Attenzione a" (es. "Attenzione ai nomi con spazi"). Copia
+     l'intero blocco ::: {.callout-warning ...} ... ::: e modifica
+     solo titolo e testo. -->
+```
+
+::: {.callout-warning appearance="default" icon="false"}
+## Attenzione a …
+
+Questo è un esempio di riquadro di attenzione.
+:::
+
+I riquadri **verdi** contengono invece approfondimenti facoltativi, per
+chi vuole andare un po' oltre: puoi saltarli senza perdere il filo
+dell'esercizio e tornarci in un secondo momento.
+
+```{=html}
+<!-- ISTRUZIONI: Il box verde "Approfondimento: …" va usato per
+     contenuti facoltativi: funzioni alternative, scorciatoie, casi
+     più avanzati. Lo studente deve poter completare l'esercizio anche
+     senza leggerlo. Il titolo inizia sempre con "Approfondimento:"
+     (es. "Approfondimento: gestire le date in R"). Copia l'intero
+     blocco ::: {.callout-tip ...} ... ::: e modifica solo titolo e
+     testo. -->
+```
+
+::: {.callout-tip appearance="default" icon="false"}
+## Approfondimento: …
+
+Questo è un esempio di riquadro di approfondimento.
+:::
+
+Ti consigliamo di provare comunque a rispondere e a eseguire il codice
+da solo prima di consultare suggerimenti e soluzioni: è così che si
+impara davvero a usare R.
+
+## Preparazione
+
+Oggi inizierai uno script nuovo, dedicato all'unione dei dati. Apri il
+progetto del corso, crea un nuovo script (*File -> New File -> R
+Script*) e salvalo nella cartella `script` con il nome `join`.
+
+Come nei moduli precedenti, inizia lo script con alcuni commenti: nome e
+cognome, obiettivo dello script, email e data. Poi crea la sezione
+"Caricamento pacchetti" con la combinazione di tasti **Ctrl + Shift +
+R** (**Cmd + Shift + R** su Mac) e copiaci il comando `pacman::p_load()`
+dello script `tabelle_grouping.R`. Eseguilo.
+
+Ricordati di salvare spesso il lavoro (**Ctrl + S**, oppure **Cmd + S**
+su Mac).
+
+## Iniziamo!
+
+`r fontawesome::fa("play", fill = "darkgreen")` **Da qui comincia
+l'esercitazione.**
+
+## Il punto di partenza
+
+<!-- Tempo stimato: 7 minuti -->
+
+### I dati
+
+Lavoriamo ancora con `dati_clean`: la coorte di persone vaccinate
+contro COVID-19, con e senza HIV, in cui ogni riga è una persona. Come
+nei Moduli 4 e 5, nello script crea la sezione "Importazione dati"
+(**Ctrl+Shift+R**) e importa con `import()` il file `dati_clean.rds`
+della cartella `dati`, chiamando il dataset `dati_clean`.
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+#| eval: false
+
+# Importazione dati -------------------------------------------------------
+dati_clean <- import("dati/dati_clean.rds")
+```
+
+</br>
+
+</details>
+
+### Le due tabelle nuove
+
+Oggi unirai `dati_clean` a due tabelle nuove, create per questa
+esercitazione.
+
+La tabella `regioni` è l'elenco di tutte le regioni, anche di quelle in
+cui non abbiamo partecipanti, con una riga per regione:
+
+| Variabile        | Descrizione                                      |
+|------------------|--------------------------------------------------|
+| `codice_regione` | codice della regione (da A a F)                  |
+| `area`           | area geografica (Nord, Centro, Sud, Isole)       |
+| `popolazione`    | popolazione residente                            |
+
+La tabella `richiami` ha una riga per ogni dose di richiamo del
+vaccino: chi ha ricevuto due richiami compare due volte, chi non ne ha
+ricevuti non compare.
+
+| Variabile    | Descrizione                                         |
+|--------------|-----------------------------------------------------|
+| `id_subject` | identificativo della persona                        |
+| `dose`       | quale richiamo (`richiamo_1`, `richiamo_2`)         |
+| `data_dose`  | data del richiamo                                   |
+
+Le due tabelle servono per tutta l'esercitazione, quindi vanno nello
+script. Nella sezione "Importazione dati", sotto l'importazione di
+`dati_clean`, importa con `import()` i file `regioni.rds` e
+`richiami.rds`, che si trovano anch'essi nella cartella `dati`,
+chiamandoli `regioni` e `richiami`.
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+#| eval: false
+
+regioni  <- import("dati/regioni.rds")
+richiami <- import("dati/richiami.rds")
+```
+
+</br>
+
+</details>
+
+::: {.callout-warning appearance="default" icon="false"}
+## Attenzione all'avviso su `trust`
+
+Importando i file potrebbe comparire nella console un avviso
+(*warning*) che parla di `trust`. Non è un errore: è un messaggio del
+pacchetto `{rio}` sulle sue versioni future, e i data frame vengono
+importati correttamente. Puoi ignorarlo.
+:::
+
+### L'area di prova
+
+Come nei moduli precedenti, aggiungi in fondo allo script una nuova
+sezione, "Area di prova" (**Ctrl+Shift+R**). Le sezioni che creerai più avanti vanno inserite sopra l'area di prova,
+così che resti sempre l'ultima sezione dello script.
+
+Come nei moduli precedenti, non tutto quello che scrivi va tenuto:
+
+-   i comandi per **esplorare** e per **provare** (controlli sul numero
+    di righe, confronti tra join, errori voluti e le loro correzioni) si
+    scrivono nell'**area di prova**: guardi il risultato nella console e
+    poi li lasci lì;
+-   i data frame che sono un **risultato da tenere** si salvano in un
+    oggetto con l'operatore di assegnazione `<-` e si scrivono **nello
+    script**, nelle sezioni del Modulo 7.
+
+In ogni esercizio ti indicheremo dove scrivere il codice.
+
+### Uno sguardo alle tabelle
+
+Nell'area di prova controlla il numero di righe e di variabili delle tre
+tabelle. Poi stampa `regioni` e guarda le prime righe di `richiami`.
+
+<details>
+
+<summary style="text-decoration: underline; color: darkgreen;">
+
+`r fontawesome::fa("lightbulb", fill = "gold")` Clicca per leggere un
+suggerimento
+
+</summary>
+
+</br>
+
+Per le dimensioni usa `dim()`. `regioni` è piccola e si può stampare
+scrivendo solo il suo nome; per `richiami` usa `head()`, che mostra le
+prime sei righe.
+
+</br>
+
+</details>
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+dim(dati_clean)
+dim(regioni)
+dim(richiami)
+
+regioni
+
+head(richiami)
+
+```
+
+</br>
+
+</details>
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+opts <- c(
+  answer = "Perché alcune persone hanno ricevuto due richiami, altre nessuno",
+  "Perché richiami contiene anche le persone senza HIV",
+  "Perché import() ha letto il file due volte",
+  "Perché in richiami ci sono più variabili"
+)
+
+cat("`dati_clean` e `richiami` hanno un numero di righe diverso. Perché?", longmcq(opts))
+```
+:::
+::::
+
+::: {.callout-warning appearance="default" icon="false"}
+## Attenzione ai data frame molto grandi
+
+`dati_clean` e `richiami` hanno decine di migliaia di righe, e lo
+stesso vale per i risultati dei join che costruirai oggi. Se scrivi solo
+il nome del data frame ed esegui, R prova a stampare tutte le righe
+nella console. Per controllare un risultato usa `nrow()` o `head()`,
+oppure salvalo con l'operatore di assegnazione `<-` e aprilo con
+`View()`.
+:::
+
+## Accodare righe con `bind_rows()`
+
+<!-- Tempo stimato: 8 minuti -->
+
+### Due invii separati
+
+A volte i dati arrivano a pezzi: per esempio due invii con le stesse
+variabili, uno dopo l'altro. Per accodarli in un unico data frame si usa
+`bind_rows()` del pacchetto `{dplyr}`: tra le parentesi si indicano i
+data frame da accodare, separati da una virgola. L'argomento `.id`,
+facoltativo, aggiunge una variabile con il numero del data frame da cui
+arriva ogni riga (1 per il primo, 2 per il secondo):
+
+```{r}
+#| eval: false
+bind_rows(DATI_1, DATI_2, .id = "NOME_VARIABILE")
+```
+
+Immagina che i dati della coorte ti siano arrivati in due invii
+separati: il primo con le persone il cui codice di gruppo (`group`)
+arriva fino a 22000, il secondo con gli altri. Nel secondo invio, per un
+errore, manca la variabile dell'età. Copia questo codice nell'area di
+prova ed eseguilo per ricreare i due invii; poi controlla con `dim()`
+quante righe e quante variabili ha ciascuno.
+
+```{r}
+#| echo: true
+
+lotto1 <- dati_clean %>%
+  filter(group <= 22000)
+
+lotto2 <- dati_clean %>%
+  filter(group > 22000) %>%
+  select(-age)
+
+```
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+dim(lotto1)
+dim(lotto2)
+
+```
+
+</br>
+
+</details>
+
+### Accodare i due invii
+
+Sempre nell'area di prova, accoda i due invii in un unico data frame,
+`dati_uniti`, aggiungendo una variabile `lotto` che dica da quale invio
+arriva ogni riga. Poi controlla:
+
+-   quante righe arrivano da ciascun invio;
+-   quante righe ha `dati_uniti` in totale e quante età mancanti ci
+    sono.
+
+<details>
+
+<summary style="text-decoration: underline; color: darkgreen;">
+
+`r fontawesome::fa("lightbulb", fill = "gold")` Clicca per leggere un
+suggerimento
+
+</summary>
+
+</br>
+
+Per contare le righe per invio usa `count()`, come nel Modulo 4. Per
+le età mancanti usa `summarise()` con `sum(is.na(age))`.
+
+</br>
+
+</details>
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+dati_uniti <- bind_rows(lotto1, lotto2, .id = "lotto")
+
+dati_uniti %>%
+  count(lotto)
+
+dati_uniti %>%
+  summarise(
+    n            = n(),
+    age_mancanti = sum(is.na(age)))
+
+```
+
+</br>
+
+</details>
+
+<!-- La risposta corretta è calcolata dai dati -->
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+opts <- c(
+  answer = "bind_rows() ha messo NA nella variabile age per tutte le righe del secondo invio",
+  "bind_rows() ha tolto le righe senza età",
+  "Le persone del secondo invio sono quasi tutte senza età anche in dati_clean",
+  "bind_rows() ha diviso per due il numero di età presenti"
+)
+
+cat(paste0("In `dati_uniti` le età mancanti sono ", format(sum(is.na(dati_uniti$age)), big.mark = "."),
+           ", mentre in `dati_clean` erano solo ", sum(is.na(dati_clean$age)), ". Che cosa è successo?"),
+    longmcq(opts))
+```
+:::
+::::
+
+::: {.callout-warning appearance="default" icon="false"}
+## Attenzione: `bind_rows()` accoda per nome, non per posizione
+
+`bind_rows()` abbina le variabili per nome: se una variabile manca in
+uno dei data frame, la crea e la riempie con `NA`, senza fermarsi. È
+comodo, ma una variabile con un nome scritto in modo diverso (per
+esempio `Age` e `age`) diventerebbe due variabili mezze vuote. Dopo aver
+accodato controlla sempre le variabili e i valori mancanti.
+:::
+
+## La chiave e il primo `left_join()`
+
+<!-- Tempo stimato: 13 minuti -->
+
+### Controllare la chiave
+
+Vuoi aggiungere a ogni persona di `dati_clean` l'area geografica e la
+popolazione della sua regione, prese da `regioni`. Per unire due
+tabelle serve una **chiave**: una variabile presente in entrambe, che
+dice quale riga di una tabella va con quale riga dell'altra. Qui la
+chiave è la regione: in `dati_clean` si chiama `region`, in `regioni` si
+chiama `codice_regione`.
+
+Prima di un join conviene sempre controllare la chiave. Nell'area di
+prova controlla:
+
+-   quali valori ha `region` in `dati_clean` e `codice_regione` in `regioni`;
+-   se in `regioni` ogni codice compare una volta sola;
+-   se le due variabili sono dello stesso tipo.
+
+<details>
+
+<summary style="text-decoration: underline; color: darkgreen;">
+
+`r fontawesome::fa("lightbulb", fill = "gold")` Clicca per leggere un
+suggerimento
+
+</summary>
+
+</br>
+
+I valori distinti di una variabile si vedono con `distinct()`. Per i
+duplicati conta i codici con `count()` e tieni con `filter()` solo
+quelli con `n > 1`: se non esce nessuna riga, la chiave è unica. Il
+tipo di una variabile si vede con `class()`.
+
+</br>
+
+</details>
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+# controllare le regioni presenti in entrambi dataset
+dati_clean %>%
+  distinct(region)
+
+regioni %>% 
+  distinct(codice_regione)
+
+# nessuna riga = nessun codice duplicato
+regioni %>%
+  count(codice_regione) %>%
+  filter(n > 1)
+
+class(dati_clean$region)
+class(regioni$codice_regione)
+
+```
+
+</br>
+
+</details>
+
+<!-- DIPENDE DAI DATI: presuppone che region non abbia NA (esclusi nel
+     Modulo 3) e che E ed F non compaiano in dati_clean -->
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+opts <- c(
+  "Nessuna: le due chiavi hanno esattamente gli stessi valori",
+  answer = "In regioni ci sono anche E ed F, che in dati_clean non compaiono",
+  "In dati_clean ci sono regioni che in regioni non esistono",
+  "region è un numero, codice_regione un testo"
+)
+
+cat("Che differenze ci sono tra i valori di `region` e quelli di `codice_regione`?", longmcq(opts))
+```
+:::
+::::
+
+### Come funziona `left_join()`
+
+`left_join()` del pacchetto `{dplyr}` parte da una tabella, quella di
+**sinistra** (qui `dati_clean`), e le aggiunge le variabili di una
+seconda tabella, quella di **destra** (qui `regioni`): ogni riga di
+sinistra riceve i valori della riga di destra con la stessa chiave. Le
+righe di sinistra si tengono tutte, anche quelle che non trovano un
+partner: per loro le variabili nuove restano `NA`. La chiave si indica
+con l'argomento `by`:
+
+```{r}
+#| eval: false
+DATI_SINISTRA %>%
+  left_join(DATI_DESTRA, by = "CHIAVE")
+```
+
+Proviamo nell'area di prova: unisci `regioni` a `dati_clean` con
+`left_join()`, indicando la chiave con `by = "region"`. Che cosa
+succede?
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+#| error: true
+
+dati_clean %>%
+  left_join(regioni, by = "region")
+
+```
+
+</br>
+
+R si ferma con un errore: con `by = "region"` cerca una variabile
+`region` in **entrambe** le tabelle, ma in `regioni` la chiave si
+chiama `codice_regione`.
+
+</br>
+
+</details>
+
+Quando la chiave ha nomi diversi nelle due tabelle, si scrive con
+`join_by()` e il doppio uguale `==`, prima il nome nella tabella di
+sinistra e poi quello nella tabella di destra:
+
+```{r}
+#| eval: false
+DATI_SINISTRA %>%
+  left_join(DATI_DESTRA, by = join_by(CHIAVE_SINISTRA == CHIAVE_DESTRA))
+```
+
+Il risultato di questo join lo teniamo. Nello script, sopra l'area di
+prova, crea la sezione "Join con le regioni" (**Ctrl+Shift+R**) e salva
+il join corretto in un nuovo oggetto, `dati_regioni`: così `dati_clean`
+resta com'è.
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+# Join con le regioni -----------------------------------------------------
+dati_regioni <- dati_clean %>%
+  left_join(regioni, by = join_by(region == codice_regione))
+
+```
+
+</br>
+
+</details>
+
+### Controllare il risultato
+
+Dopo un join si controlla sempre il numero di righe. Nell'area di
+prova confronta il numero di righe di `dati_regioni` con quello di
+`dati_clean`, poi conta le combinazioni di `region` e `area`.
+
+<details>
+
+<summary style="text-decoration: underline; color: darkgreen;">
+
+`r fontawesome::fa("lightbulb", fill = "gold")` Clicca per leggere un
+suggerimento
+
+</summary>
+
+</br>
+
+Per il numero di righe usa `nrow()`. Per le combinazioni usa `count()`
+con due variabili, come nel Modulo 4.
+
+</br>
+
+</details>
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+nrow(dati_clean)
+nrow(dati_regioni)
+
+dati_regioni %>%
+  count(region, area)
+
+```
+
+</br>
+
+</details>
+
+<!-- DIPENDE DAI DATI: presuppone che dati_clean abbia solo le regioni
+     A, B, C e D, senza NA -->
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+opts <- c(
+  "Perché left_join() toglie le righe di regioni che non hanno un'area",
+  answer = "Perché left_join() tiene le righe di dati_clean, e nessuna persona di dati_clean è delle regioni E o F",
+  "Perché in regioni le righe di E ed F sono vuote",
+  "Perché il join ha fallito per E ed F"
+)
+
+cat("Nel conteggio compaiono solo le regioni A, B, C e D, ognuna con la sua area. Perché non ci sono E ed F?", longmcq(opts))
+```
+:::
+::::
+
+::: {.callout-warning appearance="default" icon="false"}
+## Attenzione ai nomi della chiave
+
+Se la chiave ha nomi diversi nelle due tabelle, `by = "region"` non
+basta: serve `join_by()` con il doppio uguale `==`. Se invece togli del
+tutto `by`, `{dplyr}` usa le variabili con lo stesso nome nelle due
+tabelle e lo segnala con il messaggio `Joining with by = ...`: funziona,
+ma è meglio scrivere sempre la chiave, così sai esattamente su che cosa
+stai unendo.
+:::
+
+::: {.callout-tip appearance="default" icon="false"}
+## Approfondimento: accodare e unire con R base
+
+Le stesse operazioni si possono fare anche con le funzioni di R base,
+senza `{dplyr}`:
+
+```{r}
+#| eval: false
+# accodare righe (come bind_rows()): con un numero di variabili
+# diverso, come in lotto1 e lotto2, rbind() si ferma con un errore
+rbind(lotto1, lotto2)
+
+# unire due tabelle (come left_join()): all.x = TRUE tiene tutte le
+# righe della tabella di sinistra
+merge(dati_clean, regioni,
+      by.x = "region", by.y = "codice_regione", all.x = TRUE)
+```
+
+`merge()` però riordina le righe in base alla chiave: per questo nel
+corso usiamo i join di `{dplyr}`, che mantengono l'ordine della tabella
+di sinistra.
+:::
+
+## I quattro join a confronto
+
+<!-- Tempo stimato: 8 minuti -->
+
+### Quante righe?
+
+`left_join()` non è l'unico join. Le funzioni hanno tutte la stessa
+sintassi e cambiano solo nelle righe che tengono:
+
+-   `left_join()` tiene tutte le righe della tabella di sinistra;
+-   `inner_join()` tiene solo le righe che trovano un partner nell'altra
+    tabella;
+-   `right_join()` tiene tutte le righe della tabella di destra;
+-   `full_join()` tiene tutte le righe di entrambe le tabelle.
+
+Nell'area di prova ripeti l'unione di `dati_clean` e `regioni` con
+`inner_join()`, `right_join()` e `full_join()`, e per ciascuno conta le
+righe del risultato. Prima di eseguire, prova a prevedere il numero:
+ricorda le regioni E ed F, che sono in `regioni` ma non in `dati_clean`.
+
+<details>
+
+<summary style="text-decoration: underline; color: darkgreen;">
+
+`r fontawesome::fa("lightbulb", fill = "gold")` Clicca per leggere un
+suggerimento
+
+</summary>
+
+</br>
+
+Copia il `left_join()` e cambia solo il nome della funzione. Aggiungi
+`%>% nrow()` alla fine, così non stampi migliaia di righe.
+
+</br>
+
+</details>
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+dati_clean %>%
+  inner_join(regioni, by = join_by(region == codice_regione)) %>%
+  nrow()
+
+dati_clean %>%
+  right_join(regioni, by = join_by(region == codice_regione)) %>%
+  nrow()
+
+dati_clean %>%
+  full_join(regioni, by = join_by(region == codice_regione)) %>%
+  nrow()
+
+```
+
+</br>
+
+</details>
+
+<!-- DIPENDE DAI DATI: presuppone che region non abbia NA in dati_clean
+     (esclusi nel Modulo 3), quindi left_join() e inner_join() danno lo
+     stesso numero di righe -->
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+opts <- c(
+  "Perché left_join() e inner_join() sono la stessa funzione con due nomi",
+  answer = "Perché ogni persona di dati_clean trova la sua regione in regioni: nessuna riga di sinistra resta senza partner",
+  "Perché inner_join() tiene anche le regioni E ed F",
+  "Perché regioni ha una sola riga per ogni regione"
+)
+
+cat("`inner_join()` dà lo stesso numero di righe di `left_join()`. Perché?", longmcq(opts))
+```
+:::
+::::
+
+I due join darebbero risultati diversi se in `dati_clean` ci fosse una
+persona con regione mancante, o con una regione che in `regioni` non
+c'è: `left_join()` la terrebbe, con `area` e `popolazione` `NA`, mentre
+`inner_join()` la toglierebbe. È il caso della persona con regione
+mancante che hai escluso con `filter()` nel Modulo 3.
+
+### Le righe che arrivano solo da `regioni`
+
+Con `right_join()` tieni tutte le righe di `regioni`, anche quelle delle
+regioni in cui non abbiamo partecipanti. Nell'area di prova, dal
+risultato del `right_join()` tieni solo le regioni E ed F e guarda le
+variabili `id_subject`, `region`, `sex` e `area`.
+
+<details>
+
+<summary style="text-decoration: underline; color: darkgreen;">
+
+`r fontawesome::fa("lightbulb", fill = "gold")` Clicca per leggere un
+suggerimento
+
+</summary>
+
+</br>
+
+Dopo il join usa `filter()` con `%in%`, come nel Modulo 3, e poi
+`select()`. Nel risultato la chiave si chiama `region`, cioè con il
+nome che ha nella tabella di sinistra.
+
+</br>
+
+</details>
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+dati_clean %>%
+  right_join(regioni, by = join_by(region == codice_regione)) %>%
+  filter(region %in% c("E", "F")) %>%
+  select(id_subject, region, sex, area)
+
+```
+
+</br>
+
+</details>
+
+Le regioni E ed F compaiono comunque, con tutte le variabili di
+`dati_clean` vuote (`NA`).
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+opts <- c(
+  answer = "left_join(), perché tiene tutti i partecipanti e non aggiunge righe senza partecipanti",
+  "right_join(), perché tiene tutte le regioni",
+  "full_join(), perché non perde nessuna riga",
+  "inner_join(), perché tiene solo le righe complete"
+)
+
+cat("In uno studio di coorte, quale join userai quasi sempre per aggiungere informazioni ai partecipanti?", longmcq(opts))
+```
+:::
+::::
+
+## Chi manca? `semi_join()` e `anti_join()`
+
+<!-- Tempo stimato: 7 minuti -->
+
+`semi_join()` e `anti_join()` si scrivono come gli altri join, ma non
+aggiungono variabili: guardano solo se ogni riga della tabella di
+sinistra trova un partner nella tabella di destra.
+
+-   `semi_join()` tiene le righe che trovano un partner;
+-   `anti_join()` tiene le righe che **non** lo trovano.
+
+```{r}
+#| eval: false
+DATI_SINISTRA %>%
+  semi_join(DATI_DESTRA, by = "CHIAVE")
+```
+
+Servono soprattutto per i controlli. Usali nell'area di prova per
+rispondere a queste domande:
+
+-   quante persone di `dati_clean` hanno ricevuto almeno un richiamo?
+-   quante non ne hanno ricevuto nessuno?
+-   ci sono righe di `richiami` con un `id_subject` che non esiste in
+    `dati_clean`?
+
+<details>
+
+<summary style="text-decoration: underline; color: darkgreen;">
+
+`r fontawesome::fa("lightbulb", fill = "gold")` Clicca per leggere un
+suggerimento
+
+</summary>
+
+</br>
+
+La chiave ha lo stesso nome nelle due tabelle: basta
+`by = "id_subject"`. Per le prime due domande parti da `dati_clean`;
+per la terza parti da `richiami` e usa `anti_join()` verso
+`dati_clean`.
+
+</br>
+
+</details>
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+# persone con almeno un richiamo
+dati_clean %>%
+  semi_join(richiami, by = "id_subject") %>%
+  nrow()
+
+# persone senza richiami
+dati_clean %>%
+  anti_join(richiami, by = "id_subject") %>%
+  nrow()
+
+# richiami di persone che non esistono in dati_clean
+richiami %>%
+  anti_join(dati_clean, by = "id_subject")
+
+```
+
+</br>
+
+</details>
+
+<!-- La risposta corretta è calcolata dai dati -->
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+opts <- c(
+  answer = "Spariscono senza nessun avviso, perché non hanno un partner in dati_clean",
+  "Compaiono in fondo al risultato con le variabili di dati_clean vuote",
+  "R si ferma con un errore",
+  "Vengono abbinate alla persona con l'id più simile"
+)
+
+cat("Hai trovato", nrow(anti_join(richiami, dati_clean, by = "id_subject")),
+    "richiami di persone che non esistono. Che cosa succede a queste righe in un `left_join()` che parte da `dati_clean`?",
+    longmcq(opts))
+```
+:::
+::::
+
+::: {.callout-tip appearance="default" icon="false"}
+## Approfondimento: `semi_join()` non duplica le righe
+
+Una persona con due richiami compare due volte in `richiami`, ma
+`semi_join()` la conta una volta sola: tiene le righe di `dati_clean`
+che hanno almeno un partner, senza ripeterle. Per questo la somma delle
+persone con e senza richiami torna esattamente al totale di
+`dati_clean`. Con un `left_join()`, come vedrai nella prossima sezione,
+non è così.
+:::
+
+## Chiavi duplicate
+
+<!-- Tempo stimato: 10 minuti -->
+
+### Quante volte compare ogni persona?
+
+In `regioni` ogni codice compare una volta sola. In `richiami`, invece,
+la stessa persona può comparire più di una volta. Nell'area di prova
+conta quante persone compaiono una volta e quante due volte.
+
+<details>
+
+<summary style="text-decoration: underline; color: darkgreen;">
+
+`r fontawesome::fa("lightbulb", fill = "gold")` Clicca per leggere un
+suggerimento
+
+</summary>
+
+</br>
+
+Usa due `count()` in fila: il primo conta le righe per `id_subject`, il
+secondo conta quanti `id_subject` hanno ciascun valore di `n`. Con
+`name = "persone"` dai un nome alla nuova colonna.
+
+</br>
+
+</details>
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+richiami %>%
+  count(id_subject) %>%
+  count(n, name = "persone")
+
+```
+
+</br>
+
+</details>
+
+```{r}
+#| include: false
+volte <- richiami %>% count(id_subject) %>% count(n, name = "persone")
+```
+
+Questo risultato indica che
+`r format(volte$persone[volte$n == 1], big.mark = ".")` persone hanno
+ricevuto un solo richiamo e
+`r format(volte$persone[volte$n == 2], big.mark = ".")` ne hanno
+ricevuti due.
+
+### Il join con la chiave duplicata
+
+Nell'area di prova unisci `richiami` a `dati_clean` con `left_join()` e
+conta le righe del risultato. Prima di eseguire, prova a prevedere il
+numero.
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+nrow(dati_clean)
+
+dati_clean %>%
+  left_join(richiami, by = "id_subject") %>%
+  nrow()
+
+```
+
+</br>
+
+</details>
+
+<!-- La risposta corretta è calcolata dai dati -->
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+opts <- c(
+  answer = "Le persone con due richiami compaiono due volte, una per ogni richiamo",
+  "left_join() ha aggiunto i 3 richiami di persone inesistenti",
+  "left_join() ha aggiunto le regioni E ed F",
+  "Ci sono persone duplicate in dati_clean"
+)
+
+cat(paste0("Il risultato ha ", format(nrow(left_join(dati_clean, richiami, by = "id_subject")), big.mark = "."),
+           " righe invece di ", format(nrow(dati_clean), big.mark = "."), ". Perché?"), longmcq(opts))
+```
+:::
+::::
+
+### Farsi avvisare da `{dplyr}`
+
+L'argomento `relationship = "one-to-one"` chiede a `{dplyr}` di
+controllare che ogni riga trovi al massimo un partner, e di fermarsi
+con un errore se non è così. Nell'area di prova ripeti il join
+aggiungendo questo argomento e leggi il messaggio che compare.
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+#| error: true
+
+dati_clean %>%
+  left_join(richiami, by = "id_subject", relationship = "one-to-one") %>%
+  nrow()
+
+```
+
+</br>
+
+R si ferma con un errore: il messaggio indica una riga di `dati_clean`
+(`Row … of x`) che trova più di un partner in `richiami`, cioè una
+persona con due richiami. Qui l'errore è utile: ti avvisa prima che le
+righe si moltiplichino.
+
+</br>
+
+</details>
+
+::: {.callout-warning appearance="default" icon="false"}
+## Attenzione alle righe che si moltiplicano
+
+Se la chiave è duplicata nella tabella di destra, `left_join()` ripete
+la riga di sinistra per ogni partner, **senza avvisare**: contando poi
+le righe conteresti più persone di quelle che hai. Se la chiave è
+duplicata in **entrambe** le tabelle (relazione "molti a molti", per
+esempio unendo per `group` invece che per `id_subject`), `{dplyr}` dà
+un avviso: `Detected an unexpected many-to-many relationship`. Quasi
+sempre vuol dire che hai scelto la chiave sbagliata. In ogni caso, dopo
+un join controlla sempre il numero di righe.
+:::
+
+## Da lungo a largo con `pivot_wider()`
+
+<!-- Tempo stimato: 12 minuti -->
+
+### Come funziona `pivot_wider()`
+
+Gli stessi dati possono avere due forme. Nel formato **lungo** ogni
+combinazione ha la sua riga; nel formato **largo** una delle variabili
+si "allarga" in più colonne. `pivot_wider()` del pacchetto `{tidyr}`
+porta i dati da lungo a largo. Servono due argomenti: `names_from`, la
+variabile da cui prendere i nomi delle nuove colonne, e `values_from`,
+la variabile da cui prendere i valori delle celle:
+
+```{r}
+#| eval: false
+DATI %>%
+  pivot_wider(names_from  = VARIABILE_NOMI,
+              values_from = VARIABILE_VALORI)
+```
+
+### Una tabella di conteggi
+
+Nell'area di prova conta le persone per sesso e indice di Charlson con
+`count()` e salva il risultato in `conteggi`. È una tabella in formato
+lungo: una riga per ogni combinazione. Poi portala in formato largo, con
+una riga per sesso e una colonna per ogni classe di `chrls_index`.
+
+<details>
+
+<summary style="text-decoration: underline; color: darkgreen;">
+
+`r fontawesome::fa("lightbulb", fill = "gold")` Clicca per leggere un
+suggerimento
+
+</summary>
+
+</br>
+
+I nomi delle nuove colonne vengono da `chrls_index`, i valori delle
+celle dalla colonna `n` di `conteggi`.
+
+</br>
+
+</details>
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+conteggi <- dati_clean %>%
+  count(sex, chrls_index)
+
+conteggi
+
+conteggi %>%
+  pivot_wider(names_from  = chrls_index,
+              values_from = n)
+
+```
+
+</br>
+
+</details>
+
+<!-- DIPENDE DAI DATI: presuppone che le 2 persone con sex NA non
+     abbiano Charlson 3-4 né 5+ -->
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+opts <- c(
+  "Sono dati persi durante il pivot",
+  answer = "Sono combinazioni che non esistono: nessuna persona con sesso mancante ha quell'indice di Charlson",
+  "Sono persone con indice di Charlson mancante",
+  "pivot_wider() mette sempre NA nell'ultima riga"
+)
+
+cat("Nella riga con `sex` NA alcune celle sono NA. Che cosa significano?", longmcq(opts))
+```
+:::
+::::
+
+### Riempire le celle vuote
+
+`pivot_wider()` ha anche l'argomento `values_fill`, che indica con che
+cosa riempire le celle senza valore. Nell'area di prova ripeti il pivot
+in modo che le combinazioni che non esistono abbiano 0 invece di `NA`.
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+conteggi %>%
+  pivot_wider(names_from  = chrls_index,
+              values_from = n,
+              values_fill = 0)
+
+# Lo stesso contenuto, con tabyl() del Modulo 4
+dati_clean %>%
+  tabyl(sex, chrls_index)
+
+```
+
+</br>
+
+</details>
+
+::: {.callout-warning appearance="default" icon="false"}
+## Attenzione ai nomi delle nuove colonne
+
+Le nuove colonne prendono il nome dai valori di `names_from`: qui `0`,
+`1-2`, `3-4` e `5+`. Non sono nomi validi in R, perché iniziano con un
+numero o contengono simboli: per usarli in seguito devi scriverli tra
+backtick, per esempio `` `1-2` ``. L'argomento `names_prefix` aggiunge
+un prefisso a tutti i nuovi nomi (per esempio `"charlson_"`) e risolve
+il problema: lo userai nell'ultima sezione.
+:::
+
+### I richiami: una riga per persona
+
+Nella sezione precedente hai visto che unire `richiami` così com'è
+moltiplica le righe. La soluzione è portare prima `richiami` in formato
+largo, con una riga per persona e una variabile per ogni richiamo.
+
+Questi risultati li teniamo. Nello script, sopra l'area di prova, crea
+la sezione "Richiami: una riga per persona" (**Ctrl+Shift+R**) e:
+
+1.  porta `richiami` in formato largo e salva il risultato in
+    `richiami_largo`;
+2.  unisci `richiami_largo` a `dati_clean` con `left_join()`, chiedendo
+    a `{dplyr}` di controllare che la relazione sia uno a uno, e salva
+    il risultato in `dati_richiami`.
+
+<details>
+
+<summary style="text-decoration: underline; color: darkgreen;">
+
+`r fontawesome::fa("lightbulb", fill = "gold")` Clicca per leggere un
+suggerimento
+
+</summary>
+
+</br>
+
+In `richiami` i nomi delle nuove variabili sono in `dose` e i valori in
+`data_dose`. Nel join aggiungi `relationship = "one-to-one"`: se ora
+non compare nessun errore, ogni persona ha al massimo una riga in
+`richiami_largo`.
+
+</br>
+
+</details>
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+# Richiami: una riga per persona ------------------------------------------
+richiami_largo <- richiami %>%
+  pivot_wider(names_from  = dose,
+              values_from = data_dose)
+
+dati_richiami <- dati_clean %>%
+  left_join(richiami_largo, by = "id_subject", relationship = "one-to-one")
+
+```
+
+</br>
+
+</details>
+
+Ora controlla il risultato nell'area di prova: conta le righe di
+`richiami_largo` e di `dati_richiami` e guarda le prime righe di
+`dati_richiami`, tenendo solo `id_subject`, `hiv_status`, `richiamo_1`
+e `richiamo_2`.
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+nrow(richiami_largo)
+nrow(dati_richiami)
+
+dati_richiami %>%
+  select(id_subject, hiv_status, richiamo_1, richiamo_2) %>%
+  head()
+
+```
+
+</br>
+
+</details>
+
+<!-- La risposta corretta è calcolata dai dati -->
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+opts <- c(
+  "Meno righe di dati_clean, perché chi non ha richiami viene tolto",
+  "Più righe di dati_clean, perché chi ha due richiami compare due volte",
+  "Lo stesso numero di righe di dati_clean: una per persona"
+)
+names(opts) <- c(
+  ifelse(nrow(dati_richiami) < nrow(dati_clean), "answer", ""),
+  ifelse(nrow(dati_richiami) > nrow(dati_clean), "answer", ""),
+  ifelse(nrow(dati_richiami) == nrow(dati_clean), "answer", "")
+)
+
+cat("Quante righe ha `dati_richiami`?", longmcq(opts))
+```
+:::
+::::
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+opts <- c(
+  "Che la data del secondo richiamo è stata persa",
+  answer = "Che la persona ha ricevuto un solo richiamo, o nessuno",
+  "Che il secondo richiamo è stato registrato in un'altra tabella",
+  "Che pivot_wider() non ha funzionato"
+)
+
+cat("In `dati_richiami` molte persone hanno NA in `richiamo_2`. Che cosa significa?", longmcq(opts))
+```
+:::
+::::
+
+## Da largo a lungo con `pivot_longer()`
+
+<!-- Tempo stimato: 10 minuti -->
+
+### Come funziona `pivot_longer()`
+
+`pivot_longer()` del pacchetto `{tidyr}` fa il contrario di
+`pivot_wider()`: impila più variabili in due sole variabili, una con il
+nome della variabile di partenza e una con il suo valore. Servono tre
+argomenti: `cols`, le variabili da impilare; `names_to`, il nome della
+variabile che conterrà i loro nomi; `values_to`, il nome della variabile
+che conterrà i valori:
+
+```{r}
+#| eval: false
+DATI %>%
+  pivot_longer(cols      = VARIABILI_DA_IMPILARE,
+               names_to  = "NOME_PER_I_NOMI",
+               values_to = "NOME_PER_I_VALORI")
+```
+
+### Il viaggio di ritorno
+
+Per vederlo, fai il viaggio di ritorno: riporta `richiami_largo` al
+formato lungo. Nell'area di prova impila le variabili `richiamo_1` e
+`richiamo_2` in due variabili, `dose` (il nome del richiamo) e
+`data_dose` (la data), e salva il risultato in `richiami_lungo`. Poi
+confronta il suo numero di righe con quello di `richiami` e conta le
+righe per `dose`.
+
+<details>
+
+<summary style="text-decoration: underline; color: darkgreen;">
+
+`r fontawesome::fa("lightbulb", fill = "gold")` Clicca per leggere un
+suggerimento
+
+</summary>
+
+</br>
+
+Le due variabili iniziano entrambe con `richiamo`: puoi selezionarle
+nell'argomento `cols` con `starts_with("richiamo")`, come nel Modulo 2.
+
+</br>
+
+</details>
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+richiami_lungo <- richiami_largo %>%
+  pivot_longer(cols      = starts_with("richiamo"),
+               names_to  = "dose",
+               values_to = "data_dose")
+
+nrow(richiami_lungo)
+nrow(richiami)
+
+head(richiami_lungo)
+
+richiami_lungo %>%
+  count(dose)
+
+```
+
+</br>
+
+</details>
+
+<!-- La risposta corretta è calcolata dai dati -->
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+opts <- c(
+  "Perché pivot_longer() ha duplicato alcune persone per errore",
+  answer = "Perché chi ha ricevuto un solo richiamo ha ora anche una riga richiamo_2 con la data mancante",
+  "Perché richiami_largo contiene anche le persone senza richiami",
+  "Perché pivot_longer() aggiunge sempre una riga per ogni NA del data frame"
+)
+
+cat(paste0("`richiami_lungo` ha ", format(nrow(richiami_lungo), big.mark = "."),
+           " righe, `richiami` solo ", format(nrow(richiami), big.mark = "."), ". Perché?"),
+    longmcq(opts))
+```
+:::
+::::
+
+### Togliere le righe vuote
+
+L'argomento `values_drop_na = TRUE` di `pivot_longer()` toglie le righe
+in cui il valore è mancante. Nell'area di prova ripeti il pivot
+aggiungendo questo argomento e salva il risultato in
+`richiami_ritorno`. Poi controlla di nuovo il numero di righe e conta le
+righe per `dose`, sia in `richiami_ritorno` sia in `richiami`.
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+richiami_ritorno <- richiami_largo %>%
+  pivot_longer(cols           = starts_with("richiamo"),
+               names_to       = "dose",
+               values_to      = "data_dose",
+               values_drop_na = TRUE)
+
+nrow(richiami_ritorno)
+nrow(richiami)
+
+richiami_ritorno %>%
+  count(dose)
+
+richiami %>%
+  count(dose)
+
+```
+
+</br>
+
+Siamo tornati esattamente al punto di partenza: stesse righe e stessi
+conteggi di `richiami`.
+
+</br>
+
+</details>
+
+::: {.callout-warning appearance="default" icon="false"}
+## Attenzione a che cosa significa `NA` prima di toglierlo
+
+Qui `values_drop_na = TRUE` è la scelta giusta: l'`NA` di `richiamo_2`
+vuol dire "secondo richiamo non ricevuto", e una dose non ricevuta non
+deve diventare una riga. Non è sempre così. In `dati_clean` l'`NA` di
+`date_event` vuol dire "nessuna diagnosi di COVID-19": se portassi le
+date in formato lungo togliendo gli `NA`, perderesti l'informazione su
+chi non si è ammalato. Prima di togliere i valori mancanti chiediti
+sempre che cosa significano, come hai fatto con `na.rm`.
+:::
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+opts <- c(
+  "Il formato largo, con una riga per persona",
+  answer = "Il formato lungo, con una riga per dose: basta contare le righe per dose",
+  "È indifferente"
+)
+
+cat("Vuoi contare quante dosi di ciascun richiamo sono state somministrate. Quale formato è più comodo?", longmcq(opts))
+```
+:::
+::::
+
+Il formato largo, invece, è quello giusto quando vuoi unire i richiami a
+`dati_clean`: una riga per persona, così il join non moltiplica le
+righe.
+
+## Copertura dei richiami per regione e stato HIV
+
+<!-- Tempo stimato: 12 minuti -->
+
+<!-- Tabella pensata per l'esercitazione del modulo 9 (report con
+     Quarto): il collega la riprende dal file richiami_regione_hiv.rds. -->
+
+Ora metti insieme quello che hai imparato. Costruisci un'ultima tabella,
+`richiami_regione_hiv`, con una riga per regione e, per ciascuna:
+
+-   la percentuale di persone con almeno un richiamo tra le persone
+    senza HIV (`hiv_0`) e con HIV (`hiv_1`), arrotondata a una cifra
+    decimale;
+-   l'area geografica e la popolazione della regione.
+
+Questa tabella la teniamo. Nello script, sopra l'area di prova, crea la
+sezione "Copertura dei richiami per regione e stato HIV"
+(**Ctrl+Shift+R**). Parti da `dati_richiami` e costruisci la catena un
+passaggio alla volta, eseguendo il codice dopo ogni aggiunta:
+
+1.  calcola la percentuale per regione e stato HIV con `group_by()` e
+    `summarise()`;
+2.  porta la tabella in formato largo con `pivot_wider()`, con una
+    colonna per stato HIV;
+3.  aggiungi area e popolazione con un `left_join()` con `regioni`.
+
+Infine salva la tabella nella cartella `output`, sia in
+formato RDS (`richiami_regione_hiv.rds`) sia in Excel
+(`richiami_regione_hiv.xlsx`).
+
+<details>
+
+<summary style="text-decoration: underline; color: darkgreen;">
+
+`r fontawesome::fa("lightbulb", fill = "gold")` Clicca per leggere un
+suggerimento
+
+</summary>
+
+</br>
+
+-   Chi ha almeno un richiamo ha `richiamo_1` presente, quindi la
+    percentuale è `mean(!is.na(richiamo_1)) * 100`. Chiudi il
+    raggruppamento con `.groups = "drop"`.
+-   In `pivot_wider()` usa `names_from = hiv_status` e
+    `names_prefix = "hiv_"`, così le colonne si chiamano `hiv_0` e
+    `hiv_1`.
+-   Per salvare usa `export()`, come nei Moduli 3 e 4: il formato
+    dipende dall'estensione del file.
+
+</br>
+
+</details>
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+# Copertura dei richiami per regione e stato HIV --------------------------
+richiami_regione_hiv <- dati_richiami %>%
+  group_by(region, hiv_status) %>%
+  summarise(perc_richiamo = round(mean(!is.na(richiamo_1)) * 100, 1),
+            .groups = "drop") %>%
+  pivot_wider(names_from   = hiv_status,
+              names_prefix = "hiv_",
+              values_from  = perc_richiamo) %>%
+  left_join(regioni, by = join_by(region == codice_regione))
+
+richiami_regione_hiv
+
+```
+
+```{r}
+#| echo: true
+#| eval: false
+
+export(richiami_regione_hiv, "output/richiami_regione_hiv.rds")
+export(richiami_regione_hiv, "output/richiami_regione_hiv.xlsx")
+
+```
+
+</br>
+
+</details>
+
+<!-- La risposta corretta è calcolata dai dati -->
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+opts <- richiami_regione_hiv$region
+names(opts) <- ifelse(richiami_regione_hiv$hiv_0 == min(richiami_regione_hiv$hiv_0), "answer", "")
+
+cat("In quale regione la percentuale di persone senza HIV con almeno un richiamo è più bassa?",
+    longmcq(opts))
+```
+:::
+::::
+
+<!-- DIPENDE DAI DATI: presuppone che la percentuale sia più alta con
+     HIV in tutte le regioni, con una differenza simile (circa 8 punti) -->
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+opts <- c(
+  "Solo in alcune regioni la percentuale è più alta con HIV",
+  answer = "In tutte le regioni la percentuale è più alta con HIV, con una differenza simile",
+  "In tutte le regioni la percentuale è più alta senza HIV",
+  "La differenza cambia molto da una regione all'altra"
+)
+
+cat("Confronta `hiv_0` e `hiv_1` nelle quattro regioni. Che cosa noti?", longmcq(opts))
+```
+:::
+::::
+
+Ricorda che i richiami di questa esercitazione sono simulati: i numeri
+servono solo a fare pratica.
+
+## Lo script completo
+
+Ecco come dovrebbe essere la parte del tuo script relativa a questa
+esercitazione. Contiene solo i risultati da tenere: i comandi che hai
+scritto nell'area di prova possono essere diversi e non servono per
+le prossime esercitazioni. Lo script completo lo trovi anche nella
+cartella `script/backup`, nel file `backup_join.R`.
+
+<details>
+
+<summary style="text-decoration: underline; color: blue;">
+
+`r fontawesome::fa("check", fill = "blue")` Clicca per vedere lo script
+completo
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+#| eval: false
+
+### Corso introduttivo a R
+### Obiettivo: trasformazione e integrazione dei dati (Modulo 7)
+### Autore: Marco Rossi
+### Data di creazione: 3 dicembre 2026
+### Contatto: marco.rossi@iss.it
+
+
+# Caricamento pacchetti ---------------------------------------------------
+pacman::p_load(
+  rio,       # importazione ed esportazione dei dati
+  skimr,     # panoramica dei dati
+  janitor,   # pulizia dei dati e tabelle
+  lubridate, # lavorare con le date
+  epikit,    # classi di età
+  gtsummary, # tabelle descrittive
+  flextable, # tabelle da presentare
+  tidyverse  # gestione e visualizzazione dei dati
+)
+
+
+# Importazione dati -------------------------------------------------------
+dati_clean <- import("dati/dati_clean.rds")
+regioni    <- import("dati/regioni.rds")
+richiami   <- import("dati/richiami.rds")
+
+
+# Join con le regioni -----------------------------------------------------
+dati_regioni <- dati_clean %>%
+  left_join(regioni, by = join_by(region == codice_regione))
+
+
+# Richiami: una riga per persona ------------------------------------------
+richiami_largo <- richiami %>%
+  pivot_wider(names_from  = dose,
+              values_from = data_dose)
+
+dati_richiami <- dati_clean %>%
+  left_join(richiami_largo, by = "id_subject", relationship = "one-to-one")
+
+
+# Copertura dei richiami per regione e stato HIV --------------------------
+richiami_regione_hiv <- dati_richiami %>%
+  group_by(region, hiv_status) %>%
+  summarise(perc_richiamo = round(mean(!is.na(richiamo_1)) * 100, 1),
+            .groups = "drop") %>%
+  pivot_wider(names_from   = hiv_status,
+              names_prefix = "hiv_",
+              values_from  = perc_richiamo) %>%
+  left_join(regioni, by = join_by(region == codice_regione))
+
+export(richiami_regione_hiv, "output/richiami_regione_hiv.rds")
+export(richiami_regione_hiv, "output/richiami_regione_hiv.xlsx")
+
+
+# Area di prova -----------------------------------------------------------
+# (il contenuto può variare)
+```
+
+</br>
+
+</details>
+
+Salva lo script e avvisa il docente che hai finito. Se non hai
+completato l'esercizio, nella cartella `script/backup` trovi la versione
+corretta di `backup_join.R`.
+
+## Riepilogo
+
+In questo modulo hai imparato a:
+
+-   accodare data frame con `bind_rows()`, che abbina le variabili per
+    nome: le variabili mancanti diventano `NA` e `.id` aggiunge una
+    variabile con l'origine di ogni riga;
+-   unire due tabelle attraverso una **chiave**, scrivendola con
+    `by = "chiave"` o, se ha nomi diversi nelle due tabelle, con
+    `by = join_by(chiave_sinistra == chiave_destra)`;
+-   scegliere il join: `left_join()` tiene tutte le righe di sinistra,
+    `inner_join()` solo quelle con un partner, `right_join()` tutte
+    quelle di destra, `full_join()` tutte quelle di entrambe;
+-   controllare con `semi_join()` e `anti_join()` quali righe trovano un
+    partner e quali no;
+-   riconoscere le chiavi duplicate, che fanno moltiplicare le righe
+    senza avvisare, e farsi avvisare da `{dplyr}` con
+    `relationship = "one-to-one"`;
+-   controllare la chiave prima del join e il numero di righe dopo: se
+    cambia, chiediti perché;
+-   portare i dati da lungo a largo con `pivot_wider()` (`names_from`,
+    `values_from`, `values_fill`, `names_prefix`) e da largo a lungo con
+    `pivot_longer()` (`cols`, `names_to`, `values_to`,
+    `values_drop_na`);
+-   portare la tabella di destra a una riga per chiave, anche con un
+    pivot, prima di unirla ai dati.
+
+## Risorse aggiuntive
+
+| Argomento | Risorsa |
+|---------------------------------------|---------------------------------|
+| Join | Documentazione di `{dplyr}`: <https://dplyr.tidyverse.org/reference/mutate-joins.html> |
+| Pivot | Documentazione di `{tidyr}`: <https://tidyr.tidyverse.org/articles/pivot.html> |
+| Join e dati in formato ordinato | *R for Data Science* (2ª edizione), capitoli "Joins" e "Data tidying": <https://r4ds.hadley.nz/joins> e <https://r4ds.hadley.nz/data-tidy> |
+| Unire e cambiare forma ai dati | *The Epidemiologist R Handbook*, capitoli "Joining data" e "Pivoting data": <https://epirhandbook.com/> |
+
+```{=html}
+<!-- Sezione Autori in sospeso: da definire
+
+**Autori**
+
+Autori originali: Andrea Cannone (Istituto Superiore di Sanità)\
+Fonte dei dati: dataset didattico del corso, con la struttura di una
+coorte di persone vaccinate contro COVID-19 con e senza HIV, e due
+tabelle accessorie create per questa esercitazione; esercizi ispirati
+ai moduli *Joining data* e *Pivoting data* di Applied Epi
+(<https://appliedepi.org>)\
+Adattato da: –
+-->
+```

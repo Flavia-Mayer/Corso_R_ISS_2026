@@ -1,0 +1,44 @@
+/*-- scss:defaults --*/
+
+// Colori del template ISS (template_DMI.pptx)
+$iss-petrolio: #006064;   // colore principale: titoli e barre delle slide
+$iss-acqua:    #CBEDED;   // colore secondario: riquadri chiari
+$iss-grigio:   #F7F7F7;   // sfondo chiaro
+
+$primary:     $iss-petrolio;
+$link-color:  $iss-petrolio;
+$navbar-bg:   $iss-petrolio;
+$navbar-fg:   #ffffff;
+$footer-bg:   $iss-grigio;
+
+/*-- scss:rules --*/
+
+// titoli delle sezioni nel colore principale, con la riga sotto in verde acqua
+h2 {
+  color: $iss-petrolio;
+  border-bottom-color: $iss-acqua !important;
+}
+
+h3, h4 {
+  color: $iss-petrolio;
+}
+
+// intestazione delle tabelle in verde acqua
+.table thead th,
+table thead th {
+  background-color: $iss-acqua;
+  color: $iss-petrolio;
+}
+
+// voce attiva del menu laterale
+#TOC .nav-link.active,
+.sidebar nav[role="doc-toc"] ul > li > a.active {
+  color: $iss-petrolio;
+  border-left-color: $iss-petrolio;
+}
+
+// menu a tendina "Moduli": intestazioni dei giorni
+.dropdown-header {
+  color: $iss-petrolio;
+  font-weight: 600;
+}

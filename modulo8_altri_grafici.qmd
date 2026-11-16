@@ -1,0 +1,1872 @@
+---
+output: html_document
+editor_options:
+  chunk_output_type: console
+execute:
+  warning: false
+  error: false
+format:
+  html:
+    css: webex.css
+    include-after-body: webex.js
+    df-print: kable
+    toc: true
+    toc-depth: 4
+    toc-expand: 1
+editor:
+  markdown:
+    wrap: 72
+title: |
+  ![](immagini/logo_dmi.png){width=3in}
+---
+
+# **Corso introduttivo al software statistico R**
+
+# Modulo 08 Altri grafici: heatmap, mappe, curve epidemiche e piramidi
+
+## Obiettivi del modulo
+
+-   Costruire un'epicurva con settimane da lunedì a domenica, passando da `binwidth =` a `breaks =` con un vettore di date creato con `floor_date()`, `ceiling_date()` e `seq.Date()`
+-   Costruire curve per settimana o per mese e mostrare i numeri di settimana ISO sull'asse
+-   Aggiungere a una tabella di conteggi le combinazioni mancanti con `complete()`
+-   Costruire heatmap con `geom_tile()` a partire da dati aggregati, anche con le etichette dei valori
+-   Leggere uno shapefile con `{sf}`, unirlo ai dati con `left_join()` e disegnare mappe coropletiche di tassi e proporzioni con `geom_sf()`
+-   Costruire piramidi per età e sesso con `{apyramid}`
+
+## Formato dell'esercizio
+
+<!-- Il paragrafo sotto è fisso: -->
+
+Questo esercizio è progettato per essere una guida e per aiutarti a completarlo in autonomia. Ti consigliamo fortemente di provare a eseguire il codice prima di guardare le soluzioni. Per aiutarti, abbiamo incluso in alcuni punti dei suggerimenti che possono indirizzarti nella direzione giusta. Li troverai così:
+
+<!-- ISTRUZIONI: Questo blocco "Suggerimento" va inserito ogni volta che vuoi dare un aiuto parziale allo studente senza svelare subito la soluzione (es. il nome di una funzione da usare, o un argomento a cui prestare attenzione). Copia l'intero blocco <details>...</details> e modifica solo il testo dopo </br>. -->
+
+<details>
+
+<summary style="text-decoration: underline; color: darkgreen;">
+
+`r fontawesome::fa("lightbulb", fill = "gold")` Clicca per leggere un suggerimento
+
+</summary>
+
+</br>
+
+Questo è un suggerimento.
+
+</br>
+
+</details>
+
+
+
+Le soluzioni, invece, avranno questo aspetto:
+
+<!-- ISTRUZIONI: Questo blocco "Soluzione" va inserito alla fine di ogni esercizio (o sotto-punto) e deve contenere codice R eseguibile e commentato. Copia l'intero blocco <details>...</details> e sostituisci il codice di esempio. Se la 
+     soluzione richiede più passaggi, aggiungi commenti # nel codice per spiegare ogni passaggio. Ricorda: niente etichette (label) nei chunk, come indicato nelle istruzioni generali. -->
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+print("Questo è un esempio di soluzione")
+
+```
+
+</br>
+
+</details>
+
+Durante l'esercizio troverai anche domande a risposta multipla, che servono a verificare se stai seguendo correttamente lo svolgimento. Le domande saranno simili a questa:
+
+<!-- ISTRUZIONI: Questo blocco "Domanda" usa il pacchetto`{webexercises}` per creare quiz a risposta multipla auto-correttivi. Copia l'intero blocco ::: {.callout-note}...::: 
+     e:
+       - scrivi le opzioni di risposta nel vettore "opts"
+       - indica la risposta corretta con answer = "..."
+       - scrivi il testo della domanda dentro cat("Domanda: ...")
+     Inserisci una domanda ogni volta che vuoi far verificare allo studente di aver capito un concetto chiave prima di proseguire. -->
+
+::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+pacman::p_load(webexercises)
+
+opts <- c(
+  "2",
+  "5",
+  answer = "4"
+)
+
+
+cat("Domanda di esempio: quanto fa 2 + 2?", longmcq(opts))
+
+```
+:::
+:::
+
+Lungo il modulo troverai anche due tipi di riquadri colorati. I riquadri **gialli** segnalano errori frequenti o punti in cui R si comporta in modo inatteso: leggili sempre, perché possono farti risparmiare tempo.
+
+<!-- ISTRUZIONI: Il box giallo "Attenzione a …" va usato per avvisi importanti: errori comuni, comportamenti di R che possono sorprendere, passaggi da non saltare. Il titolo inizia sempre con "Attenzione a" (es. "Attenzione ai nomi con spazi"). Copia l'intero blocco ::: {.callout-warning ...} ... ::: e modifica solo titolo e testo. -->
+
+::: {.callout-warning appearance="default" icon="false"}
+## Attenzione a …
+
+Questo è un esempio di riquadro di attenzione.
+:::
+
+I riquadri **verdi** contengono invece approfondimenti facoltativi, per chi vuole andare un po' oltre: puoi saltarli senza perdere il filo dell'esercizio e tornarci in un secondo momento.
+
+<!-- ISTRUZIONI: Il box verde "Approfondimento: …" va usato per contenuti facoltativi: funzioni alternative, scorciatoie, casi più avanzati. Lo studente deve poter completare l'esercizio anche senza leggerlo. Il titolo inizia sempre con "Approfondimento:" (es. "Approfondimento: gestire le date in R"). Copia l'intero blocco ::: {.callout-tip ...} ... ::: e modifica solo titolo e testo. -->
+
+::: {.callout-tip appearance="default" icon="false"}
+## Approfondimento: …
+
+Questo è un esempio di riquadro di approfondimento.
+:::
+
+Ti consigliamo di provare comunque a rispondere e a eseguire il codice da solo prima di consultare suggerimenti e soluzioni: è così che si impara davvero a usare R.
+
+## Preparazione
+
+Oggi pomeriggio torni ai grafici: riprendi lo script `plot.R`, su cui hai lavorato ieri nei Moduli 5 e 6. Se hai chiuso il progetto, riaprilo. Poi apri `plot.R` dalla cartella `script` ed eseguilo.
+
+Poi, **sopra** la sezione "Area di prova", crea una nuova sezione chiamata "Modulo 08 - Altri grafici" con la combinazione di tasti **Ctrl + Shift + R** (**Cmd + Shift + R** su Mac): qui scriverai il codice dell'esercitazione del pomeriggio. L'area di prova deve restare sempre l'ultima sezione dello script. Ricordati di salvare spesso il lavoro (**Ctrl + S**, oppure **Cmd + S** su Mac).
+
+## Iniziamo!
+
+`r fontawesome::fa("play", fill = "darkgreen")` **Da qui comincia l'esercitazione.**
+
+```{r}
+#| echo: false
+
+# chunk nascosto per il rendering del documento
+pacman::p_load(
+  tidyverse,   # ggplot2, dplyr, tidyr, lubridate, ...
+  rio,         # import/export
+  here         # percorsi relativi al progetto
+)
+
+# dati_clean <- import(here("data", "dati_elaborati", "dati_modulo3.rds"))
+dati_clean <- import("materiali_corso_R/dati/dati_clean.rds")
+```
+
+## Il punto di partenza
+
+
+### I nuovi pacchetti: `{sf}` e `{apyramid}`
+
+In questo modulo userai due pacchetti che non hai ancora caricato: `{sf}`, per leggere e disegnare le mappe, e `{apyramid}`, per le piramidi per età e sesso. Vai alla sezione "Caricamento pacchetti" all'inizio di `plot.R` e aggiungi questi due pacchetti all'interno di `pacman::p_load()`, senza creare un nuovo comando. Poi esegui di nuovo `pacman::p_load()` per caricarli.
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+# Caricamento pacchetti ---------------------------------------------------
+pacman::p_load(
+  rio,       # importazione ed esportazione dei dati
+  skimr,     # panoramica dei dati
+  janitor,   # pulizia dei dati e tabelle
+  lubridate, # lavorare con le date
+  epikit,    # classi di età
+  gtsummary, # tabelle descrittive
+  flextable, # tabelle da presentare
+  tidyverse, # gestione e visualizzazione dei dati
+  sf,        # dati spaziali e mappe
+  apyramid   # piramidi per età e sesso
+)
+
+```
+
+</br>
+
+</details>
+
+### I nuovi dati: confini e popolazione delle regioni
+
+Per le mappe, che vedrai più avanti, userai due file nuovi, che vanno importati all'inizio dello script:
+
+-   lo **shapefile** delle regioni, `dati/shapefiles/regioni.shp`, con i confini di ciascuna regione. Uno shapefile non è un solo file: `regioni.shp` è accompagnato da altri file con lo stesso nome e un'estensione diversa (`.shx`, `.dbf`, `.prj`), che devono stare nella stessa cartella. Tu leggi solo il `.shp`, con la funzione `read_sf()` del pacchetto `{sf}`, e R trova gli altri;
+-   la tabella `regioni` del Modulo 7, `dati/regioni.rds`, con la popolazione di ciascuna regione, che si importa con `import()` come `dati_clean`.
+
+Vai alla sezione "Importazione dati" all'inizio di `plot.R` e, sotto l'importazione di `dati_clean`, importa lo shapefile in un oggetto `regioni_sf` e la tabella in un oggetto `regioni`. Esegui le nuove righe.
+
+```{r}
+#| include: false
+# solo per generare l'HTML: nel corso i file sono in dati/ e dati/shapefiles
+regioni_sf <- read_sf("materiali_corso_R/dati/shapefiles/regioni.shp")
+regioni    <- import("materiali_corso_R/dati/regioni.rds")
+```
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+#| eval: false
+
+# Importazione dati -------------------------------------------------------
+dati_clean <- import("dati/dati_clean.rds")
+regioni_sf <- read_sf("dati/shapefiles/regioni.shp")
+regioni    <- import("dati/regioni.rds")
+
+```
+
+</br>
+
+</details>
+
+### L'area di prova
+
+Anche oggi userai l'"Area di prova" in fondo allo script `plot.R`, la stessa dei Moduli 5 e 6. Le sezioni che creerai più avanti vanno inserite sopra l'area di prova, così che resti sempre l'ultima sezione dello script.
+
+Come nei moduli precedenti:
+
+-   i comandi per **esplorare** e per **provare** (controlli, grafici intermedi, errori voluti e le loro correzioni) si scrivono nell'**area di prova**;
+-   gli oggetti che servono anche dopo (vettori di date, data frame aggregati, la mappa) e le **versioni finali dei grafici** si scrivono **nello script**, nelle sezioni del Modulo 08.
+
+In ogni esercizio ti indicheremo dove scrivere il codice.
+
+## Epicurva
+
+Crea ora una nuova sezione (**Ctrl+Shift+R**) chiamata "Epicurva" sopra l'area di prova.
+
+### La curva di base
+
+Una curva epidemica (epicurva) è un istogramma delle date: ogni barra conta gli eventi avvenuti in un intervallo di tempo, qui le vaccinazioni. Il punto di partenza è l'istogramma che conosci dal Modulo 5.
+
+Nell'area di prova, fai un istogramma di `date_vacc` con `geom_histogram()`, senza argomenti.
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+ggplot(data = dati_clean, mapping = aes(x = date_vacc)) +
+  geom_histogram()
+
+```
+
+</br>
+
+</details>
+
+Nella Console compare un messaggio: `geom_histogram()` ha diviso il periodo in 30 intervalli (`bins = 30`) e suggerisce di scegliere un valore migliore. Il periodo delle vaccinazioni va dal 6 febbraio al 9 luglio 2021, cioè 153 giorni: ogni barra copre un intervallo di circa 5 giorni, una durata che non corrisponde a nessuna unità di tempo con cui lavoriamo.
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+pacman::p_load(webexercises)
+
+opts <- c(
+  "Un giorno",
+  "Una settimana",
+  answer = "Circa 5 giorni: il periodo totale diviso in 30 intervalli uguali",
+  "Un mese"
+)
+
+
+cat("Con geom_histogram() senza argomenti, quanto dura il periodo coperto da ogni barra?", longmcq(opts))
+
+```
+:::
+::::
+
+### Barre di una settimana: `binwidth`
+
+Per avere barre di una settimana puoi indicare la larghezza degli intervalli con `binwidth =`, come nel Modulo 5: con le date l'unità è il giorno, quindi `binwidth = 7`.
+
+Nell'area di prova, rifai l'istogramma con `binwidth = 7`.
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+ggplot(data = dati_clean, mapping = aes(x = date_vacc)) +
+  geom_histogram(binwidth = 7)
+
+```
+
+</br>
+
+</details>
+
+Ora ogni barra dura 7 giorni, ma resta un problema: non sai **da che giorno a che giorno** va ogni barra. È `geom_histogram()` a decidere dove inizia il primo intervallo, e non necessariamente di lunedì: una barra potrebbe andare, per esempio, da giovedì a mercoledì. In una curva epidemica le settimane devono invece essere settimane di calendario, da lunedì a domenica, come nei bollettini di sorveglianza.
+
+Per decidere tu dove inizia e finisce ogni barra, `geom_histogram()` accetta l'argomento `breaks =`, a cui si passa un vettore con i confini degli intervalli. Ci serve quindi un vettore con **tutti i lunedì**, dal lunedì della settimana della prima vaccinazione al lunedì successivo all'ultima.
+
+### I lunedì: `floor_date()`, `ceiling_date()` e `seq.Date()`
+
+Per costruire questo vettore servono due passaggi.
+
+Il primo è trovare i due estremi. Il pacchetto `{lubridate}` ha due funzioni che arrotondano una data all'inizio di un periodo:
+
+-   `floor_date()` la porta **indietro**, all'inizio del periodo che la contiene;
+-   `ceiling_date()` la porta **avanti**, all'inizio del periodo successivo.
+
+Il periodo si indica con `unit =` (`"week"`, `"month"`, `"year"`, ...). Per le settimane serve anche `week_start =`, il giorno in cui inizia la settimana: `1` è il lunedì, `7` la domenica.
+
+Nell'area di prova, applica `floor_date()` alla data della prima vaccinazione, `min(dati_clean$date_vacc)`, e `ceiling_date()` alla data dell'ultima, `max(dati_clean$date_vacc)`, con `unit = "week"` e `week_start = 1`.
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+# IN AREA DI PROVA
+min(dati_clean$date_vacc)   # sabato 6 febbraio 2021
+floor_date(min(dati_clean$date_vacc), unit = "week", week_start = 1)
+
+max(dati_clean$date_vacc)   # venerdì 9 luglio 2021
+ceiling_date(max(dati_clean$date_vacc), unit = "week", week_start = 1)
+
+```
+
+</br>
+
+</details>
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+pacman::p_load(webexercises)
+
+opts <- c(
+  "Il primo giorno del mese che contiene la data",
+  answer = "Il lunedì della settimana che contiene la data",
+  "La domenica della settimana che contiene la data",
+  "Il lunedì della settimana successiva alla data"
+)
+
+
+cat("Che cosa restituisce floor_date() con unit = 'week' e week_start = 1?", longmcq(opts))
+
+```
+:::
+::::
+
+Il secondo passaggio è riempire lo spazio tra i due estremi. `seq.Date()` crea una sequenza regolare di date, con gli argomenti `from =` (la prima data), `to =` (l'ultima) e `by =` (il passo: `"week"`, `"month"`, ma anche `"4 weeks"`). Partendo da un lunedì con `by = "week"`, la sequenza contiene tutti i lunedì fino all'ultimo.
+
+Il vettore servirà anche più avanti, quindi va **nello script**: nella sezione "Epicurva", crea un vettore `settimane` con `seq.Date()`, usando come estremi le due date che hai appena calcolato. Nell'area di prova controllane l'inizio con `head()`.
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+# NELLO SCRIPT
+# Epicurva ----------------------------------------------------------
+# tutti i lunedì, dalla settimana della prima vaccinazione a quella dopo l'ultima
+settimane <- seq.Date(
+  from = floor_date(min(dati_clean$date_vacc), unit = "week", week_start = 1),
+  to   = ceiling_date(max(dati_clean$date_vacc), unit = "week", week_start = 1),
+  by   = "week")
+
+# IN AREA DI PROVA
+head(settimane)
+
+```
+
+</br>
+
+</details>
+
+### Curva settimanale
+
+Ora hai i confini delle settimane. Nella sezione "Epicurva" rifai l'istogramma sostituendo `binwidth = 7` con `breaks = settimane` e `closed = "left"`: con `closed = "left"` ogni intervallo comprende il suo primo giorno, il lunedì, e non l'ultimo, il lunedì successivo, che appartiene già alla settimana dopo. Aggiungi le etichette degli assi e un'etichetta al mese in italiano (formato `"%b\n%Y"`), come nel Modulo 6.
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+# settimane da lunedì a domenica
+ggplot(data = dati_clean, mapping = aes(x = date_vacc)) +
+  geom_histogram(breaks = settimane, closed = "left") +
+  scale_x_date(
+    date_breaks = "1 month",
+    labels = scales::label_date("%b\n%Y", locale = "it")) +
+  labs(x = "Settimana di vaccinazione", y = "Vaccinati")
+
+```
+
+</br>
+
+</details>
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+pacman::p_load(webexercises)
+
+opts <- c(
+  "Esclude dal grafico le vaccinazioni fatte di lunedì",
+  "Fa iniziare le settimane di domenica invece che di lunedì",
+  "Ordina le barre da sinistra a destra in ordine di data",
+  answer = "Conta le vaccinazioni del lunedì nella settimana che inizia quel giorno"
+)
+
+
+cat("A cosa serve closed = 'left'?", longmcq(opts))
+
+```
+:::
+::::
+
+::: {.callout-tip appearance="default" icon="false"}
+## Approfondimento: settimane ISO e settimane epidemiologiche
+
+Con `week_start = 1` le settimane vanno da lunedì a domenica, come le settimane ISO usate in Europa. Altri sistemi di sorveglianza, per esempio i CDC negli Stati Uniti, usano settimane da domenica a sabato: in quel caso basta `week_start = 7`. `{lubridate}` ha anche le funzioni `isoweek()` ed `epiweek()`, che restituiscono il numero di settimana nei due sistemi.
+:::
+
+### Curva mensile 
+
+Nell'area di prova, costruisci ora una curva mensile delle vaccinazioni con il riempimento per `hiv`. Il procedimento è lo stesso della curva settimanale: crea un vettore `mesi` con il primo giorno di ogni mese e passalo a `breaks =`.
+
+<details>
+
+<summary style="text-decoration: underline; color: darkgreen;">
+
+`r fontawesome::fa("lightbulb", fill = "gold")` Clicca per leggere un suggerimento
+
+</summary>
+
+</br>
+
+Come per `settimane`, ma con `unit = "month"` (senza `week_start`) e `by = "month"`.
+
+</br>
+
+</details>
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+mesi <- seq.Date(
+  from = floor_date(min(dati_clean$date_vacc), unit = "month"),
+  to   = ceiling_date(max(dati_clean$date_vacc), unit = "month"),
+  by   = "month")
+
+ggplot(data = dati_clean, mapping = aes(x = date_vacc, fill = hiv)) +
+  geom_histogram(breaks = mesi, closed = "left") +
+  scale_x_date(
+    date_breaks = "1 month",
+    labels = scales::label_date("%b\n%Y", locale = "it")) +
+  labs(x = "Mese di vaccinazione", y = "Vaccinati", fill = "Stato HIV")
+
+```
+
+</br>
+
+</details>
+
+### L'uso di `complete()`
+
+Quando conti con `count()`, le combinazioni che non compaiono nei dati non hanno una riga: una settimana senza vaccinati, semplicemente, non c'è. In una tabella può andare bene, in un grafico no, perché quella settimana sparisce invece di comparire con zero. `complete()` del pacchetto `{tidyr}` aggiunge le righe mancanti. Fa per un data frame in formato lungo quello che `values_fill` faceva per `pivot_wider()` nel Modulo 7:
+
+```{r}
+#| echo: true
+#| eval: false
+
+DATI %>%
+  complete(VARIABILE_1, VARIABILE_2, fill = list(n = 0))
+```
+
+-   con più variabili, `complete()` crea tutte le combinazioni dei valori presenti nei dati;
+-   al posto del nome di una variabile puoi scrivere `variabile = VALORI`, per indicare tu tutti i valori che deve avere;
+-   `fill =` dice con che cosa riempire le altre variabili nelle righe aggiunte: senza, sarebbero `NA`.
+
+Nello script, nella sezione "Epicurva", crea un data frame `vacc_settimana` con il numero di vaccinati per settimana (variabile `settimana`, il lunedì di ogni settimana). Con `complete()` aggiungi le settimane senza vaccinati, con `n = 0`, dalla prima all'ultima settimana. Poi, nell'area di prova, fai un grafico a barre con `geom_col()`.
+
+<details>
+
+<summary style="text-decoration: underline; color: darkgreen;">
+
+`r fontawesome::fa("lightbulb", fill = "gold")` Clicca per leggere un suggerimento
+
+</summary>
+
+</br>
+
+Crea `settimana` con `floor_date()` dentro `mutate()`, poi `count(settimana)`. In `complete()` indica tutte le settimane dalla prima all'ultima: `settimana = seq.Date(from = min(settimana), to = max(settimana), by = "week")`.
+
+</br>
+
+</details>
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+# NELLO SCRIPT
+vacc_settimana <- dati_clean %>%
+  mutate(settimana = floor_date(date_vacc, unit = "week", week_start = 1)) %>%
+  count(settimana) %>%
+  complete(settimana = seq.Date(from = min(settimana), to = max(settimana), by = "week"),
+           fill = list(n = 0))
+
+# IN AREA DI PROVA
+ggplot(data = vacc_settimana, mapping = aes(x = settimana, y = n)) +
+  geom_col()
+
+```
+
+</br>
+
+</details>
+
+::: {.callout-warning appearance="default" icon="false"}
+## Attenzione all'ultima settimana di `settimane`
+
+Per `complete()` non usare il vettore `settimane`: il suo ultimo lunedì, creato con `ceiling_date()`, è l'estremo destro dell'ultimo intervallo dell'istogramma, cioè la settimana **dopo** l'ultima vaccinazione. Come valore di `settimana` diventerebbe una barra in più, con zero vaccinati, dopo la fine dei dati.
+:::
+
+Aggiungi `width = 5` dentro `geom_col()`. Poi metti sull'asse x un'etichetta ogni 4 settimane, nel formato "2021-W05", e ruota le etichette di 90 gradi. Questa versione va nello script.
+
+<details>
+
+<summary style="text-decoration: underline; color: darkgreen;">
+
+`r fontawesome::fa("lightbulb", fill = "gold")` Clicca per leggere un suggerimento
+
+</summary>
+
+</br>
+
+In `scale_x_date()` usa `breaks = seq.Date(from = min(settimane), to = max(settimane), by = "4 weeks")` e `labels = scales::label_date("%G-W%V")`. `%V` è il numero di settimana ISO e `%G` l'anno a cui la settimana appartiene. Per ruotare le etichette: `theme(axis.text.x = element_text(angle = 90, vjust = 0.5))`.
+
+</br>
+
+</details>
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+ggplot(data = vacc_settimana, mapping = aes(x = settimana, y = n)) +
+  geom_col(width = 5) +
+  scale_x_date(
+    breaks = seq.Date(from = min(settimane), to = max(settimane), by = "4 weeks"),
+    labels = scales::label_date("%G-W%V")) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5)) +
+  labs(x = "Settimana di vaccinazione", y = "Vaccinati")
+
+```
+
+</br>
+
+</details>
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+pacman::p_load(webexercises)
+
+opts <- c(
+  "2021-W06, perché il 6 febbraio cade nella sesta settimana dell'anno",
+  answer = "2021-W05, la settimana ISO che inizia lunedì 1 febbraio",
+  "2021-W02, perché è il secondo mese dell'anno",
+  "2021-W01, perché è la prima settimana con vaccinazioni"
+)
+
+
+cat("Con il formato %G-W%V, come compare la settimana della prima vaccinazione (sabato 6 febbraio 2021)?", longmcq(opts))
+
+```
+:::
+::::
+
+::: {.callout-warning appearance="default" icon="false"}
+## Attenzione a `%Y` e `%G`
+
+Per i giorni a cavallo tra due anni, `%Y` e `%G` possono essere diversi: venerdì 1 gennaio 2021 appartiene alla settimana ISO 53 del 2020, quindi con `%G-W%V` diventa "2020-W53", mentre con `%Y-W%V` diventerebbe "2021-W53", una settimana che non esiste. Con i numeri di settimana usa sempre `%G`.
+:::
+
+## Heatmap dei conteggi
+
+Una heatmap è una griglia di celle colorate: ogni cella è una combinazione di due variabili, e il colore ne rappresenta il valore. In `{ggplot2}` si costruisce con `geom_tile()`, che vuole un dato già aggregato, con una riga per cella: le estetiche sono `x`, `y` e `fill`.
+
+Per contare i vaccinati per settimana serve prima una variabile che indichi la settimana di ciascuna vaccinazione. Come nell'epicurva, la crei con `floor_date()` dentro `mutate()`: con `unit = "week"` e `week_start = 1` ogni data viene riportata al **lunedì** della sua settimana, quindi tutte le vaccinazioni fatte tra un lunedì e la domenica successiva hanno lo stesso valore. A quel punto basta contare con `count()` le combinazioni di regione e settimana.
+
+Nell'area di prova, crea un data frame `vacc_regione_settimana` con il numero di vaccinati per regione e settimana. Sempre nell'area di prova fai una heatmap con `geom_tile()`, con la settimana sull'asse x, la regione sull'asse y e il riempimento per `n`.
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+# ogni data diventa il lunedì della sua settimana
+vacc_regione_settimana <- dati_clean %>%
+  mutate(settimana = floor_date(date_vacc, unit = "week", week_start = 1)) %>%
+  count(region, settimana)
+
+ggplot(data = vacc_regione_settimana, mapping = aes(x = settimana, y = region, fill = n)) +
+  geom_tile()
+
+```
+
+</br>
+
+</details>
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+pacman::p_load(webexercises)
+
+opts <- c(
+  "Settimane in cui il valore di n è NA",
+  "Settimane escluse da geom_tile() perché con pochi vaccinati",
+  answer = "Combinazioni regione-settimana senza vaccinati, che non hanno una riga",
+  "Settimane fuori dall'intervallo di date dell'asse x"
+)
+
+
+cat("Che cosa sono i buchi grigi nella heatmap?", longmcq(opts))
+
+```
+:::
+::::
+
+Aggiungi `complete()` alla catena che crea `vacc_regione_settimana`, assegnando `n = 0` alle combinazioni mancanti, e riesegui la catena. Poi, sempre nell'area di prova, rifai la heatmap con `scale_fill_gradient()`, con `"white"` per i valori bassi e `"darkred"` per quelli alti; aggiungi le date in italiano e le etichette degli assi e della legenda.
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+vacc_regione_settimana <- dati_clean %>%
+  mutate(settimana = floor_date(date_vacc, unit = "week", week_start = 1)) %>%
+  count(region, settimana) %>%
+  complete(region, settimana, fill = list(n = 0))
+
+ggplot(data = vacc_regione_settimana, mapping = aes(x = settimana, y = region, fill = n)) +
+  geom_tile() +
+  scale_fill_gradient(low = "white", high = "darkred") +
+  scale_x_date(
+    date_breaks = "1 month",
+    labels = scales::label_date("%b\n%Y", locale = "it")) +
+  labs(x = "Settimana di vaccinazione", y = "Regione", fill = "Vaccinati")
+
+```
+
+</br>
+
+</details>
+
+## Heatmap di proporzioni nel tempo
+
+Ora vogliamo vedere, settimana per settimana, come si distribuiscono i vaccinati tra le classi d'età, separatamente per stato HIV.
+
+Nell'area di prova, crea un data frame `eta_settimana` con, per ogni combinazione di `hiv`, settimana e `age_cat`, il numero di vaccinati e la loro quota sul totale di quella settimana (nello stesso gruppo `hiv`), escludendo le persone con `age_cat` mancante. Poi fai una heatmap con la settimana sull'asse x, la classe d'età sull'asse y, il riempimento per la quota e un pannello per `hiv`, uno sotto l'altro.
+
+Per i colori usa `scale_fill_distiller()`: è la versione per variabili continue di `scale_fill_brewer()` del Modulo 6, e usa le stesse palette. Con `direction = 1` i colori più scuri vanno ai valori più alti.
+
+<details>
+
+<summary style="text-decoration: underline; color: darkgreen;">
+
+`r fontawesome::fa("lightbulb", fill = "gold")` Clicca per leggere un suggerimento
+
+</summary>
+
+</br>
+
+Dopo `count(hiv, settimana, age_cat)`, raggruppa per `hiv` e `settimana` e calcola la quota con `mutate()`; ricordati di `ungroup()`. Per i pannelli uno sotto l'altro: `facet_wrap(~ hiv, ncol = 1)`. Le etichette della legenda in percentuale si ottengono con `labels = scales::label_percent()` dentro `scale_fill_distiller()`.
+
+</br>
+
+</details>
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+eta_settimana <- dati_clean %>%
+  filter(!is.na(age_cat)) %>%
+  mutate(settimana = floor_date(date_vacc, unit = "week", week_start = 1)) %>%
+  count(hiv, settimana, age_cat) %>%
+  group_by(hiv, settimana) %>%
+  mutate(quota = n / sum(n)) %>%
+  ungroup()
+
+ggplot(data = eta_settimana, mapping = aes(x = settimana, y = age_cat, fill = quota)) +
+  geom_tile() +
+  facet_wrap(~ hiv, ncol = 1) +
+  scale_fill_distiller(palette = "YlOrRd", direction = 1,
+                       labels = scales::label_percent()) +
+  scale_x_date(
+    date_breaks = "1 month",
+    labels = scales::label_date("%b\n%Y", locale = "it")) +
+  labs(x = "Settimana di vaccinazione", y = "Classe d'età",
+       fill = "Quota della\nsettimana")
+
+```
+
+</br>
+
+</details>
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+pacman::p_load(webexercises)
+
+opts <- c(
+  "Nei controlli le classi d'età si succedono dalla più anziana alla più giovane; nelle persone con HIV no",
+  "Nelle persone con HIV gli 80+ prevalgono a febbraio, nei controlli a luglio",
+  answer = "In entrambi i gruppi gli 80+ pesano di più tra marzo e maggio, con andamento simile",
+  "In nessuno dei due gruppi la quota delle classi d'età cambia nel corso delle settimane"
+)
+
+
+cat("Che cosa mostra la heatmap?", longmcq(opts))
+
+```
+:::
+::::
+
+::: {.callout-warning appearance="default" icon="false"}
+## Attenzione alle quote calcolate su pochi casi
+
+Nelle prime e nelle ultime settimane i vaccinati sono pochi: una quota del 50% può corrispondere a 1 persona su 2. La heatmap mostra tutte le celle con la stessa evidenza, qualunque sia il numero di persone su cui è calcolata la quota. Prima di commentare una cella molto scura, controlla in `eta_settimana` il valore di `n`.
+:::
+
+## Heatmap con le etichette
+
+Crea una nuova sezione con **Ctrl+Shift+R** che si chiamerà "Heatmap", sopra l'area di prova.
+
+Quando le celle sono poche, conviene scrivere il valore su ciascuna. `geom_text()` aggiunge un testo in ogni posizione `x`, `y`, preso dall'estetica `label`. Per scrivere una proporzione come percentuale, `scales::percent()` trasforma direttamente i numeri in testo (`label_percent()` si usa invece dentro le scale); con `accuracy = 1` arrotonda all'unità.
+
+Nella sezione "Heatmap" dello script crea un data frame `charlson_eta` con, per classe d'età e `hiv`, il numero di persone (`n`) e la quota con Charlson index 3 o più (`quota_ch3`), escludendo le persone con `age_cat` mancante. Nell'area di prova fai una heatmap con `hiv` sull'asse x, la classe d'età sull'asse y e il riempimento per `quota_ch3`, e aggiungi su ogni cella la percentuale con `geom_text()`.
+
+<details>
+
+<summary style="text-decoration: underline; color: darkgreen;">
+
+`r fontawesome::fa("lightbulb", fill = "gold")` Clicca per leggere un suggerimento
+
+</summary>
+
+</br>
+
+La quota si calcola dentro `summarise()` come nel Modulo 4, con la media di una condizione: `mean(chrls_index %in% c("3-4", "5+"))`. In `geom_text()` usa `aes(label = scales::percent(quota_ch3, accuracy = 1))`.
+
+</br>
+
+</details>
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+# NELLO SCRIPT
+# Heatmap ----------------------------------------------------------
+charlson_eta <- dati_clean %>%
+  filter(!is.na(age_cat)) %>%
+  group_by(age_cat, hiv) %>%
+  summarise(
+    n = n(),
+    quota_ch3 = mean(chrls_index %in% c("3-4", "5+")),
+    .groups = "drop")
+
+# IN AREA DI PROVA
+ggplot(data = charlson_eta, mapping = aes(x = hiv, y = age_cat, fill = quota_ch3)) +
+  geom_tile() +
+  geom_text(mapping = aes(label = scales::percent(quota_ch3, accuracy = 1))) +
+  scale_fill_distiller(palette = "YlOrRd", direction = 1,
+                       labels = scales::label_percent()) +
+  labs(x = NULL, y = "Classe d'età", fill = "Charlson 3+")
+
+```
+
+</br>
+
+</details>
+
+::: {.callout-tip appearance="default" icon="false"}
+## Approfondimento: `%in%` e i valori mancanti
+
+Nei nostri dati `chrls_index` non ha valori mancanti, ma con altri dati potrebbe averne. Attenzione: `%in%` restituisce `FALSE`, e non `NA`, quando il valore è mancante. Per esempio `NA %in% c("3-4", "5+")` dà `FALSE`, mentre `NA == "3-4"` dà `NA`. Quindi, con `mean(VARIABILE %in% VALORI)`, le persone con il valore mancante finirebbero al denominatore come se non avessero la caratteristica, e `na.rm = TRUE` non servirebbe a toglierle. In quel caso conviene escluderle prima, con `filter(!is.na(VARIABILE))`.
+:::
+
+Ora, nella sezione "Heatmap", sopra l'area di prova, mostra sulle celle anche il numero di persone, ad esempio "6%\n(n = 3121)". Usa `paste0()`, come nel Modulo 6.
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+ggplot(data = charlson_eta, mapping = aes(x = hiv, y = age_cat, fill = quota_ch3)) +
+  geom_tile() +
+  geom_text(mapping = aes(label = paste0(scales::percent(quota_ch3, accuracy = 1),
+                                         "\n(n = ", n, ")"))) +
+  scale_fill_distiller(palette = "YlOrRd", direction = 1,
+                       labels = scales::label_percent()) +
+  labs(x = NULL, y = "Classe d'età", fill = "Charlson 3+")
+
+```
+
+</br>
+
+</details>
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+pacman::p_load(webexercises)
+
+opts <- c(
+  "Cresce in modo regolare con l'età ed è sempre più alta nelle persone con HIV",
+  answer = "È intorno all'1-2% sotto i 60 anni e al 5-7% dai 60 in su, simile nei due gruppi",
+  "È più alta nelle classi giovani, perché le persone con HIV sono più giovani",
+  "È intorno al 30% in tutte le classi d'età e in entrambi i gruppi"
+)
+
+
+cat("Come varia la quota di persone con Charlson 3+?", longmcq(opts))
+
+```
+:::
+::::
+
+## Leggere una mappa con `{sf}`
+
+Crea una nuova sezione con **Ctrl+Shift+R** che si chiamerà "Mappe", sopra l'area di prova.
+
+All'inizio del modulo hai importato lo shapefile con `read_sf()`: il risultato, `regioni_sf`, è un oggetto `sf`, cioè un data frame come quelli che conosci, con una riga per area e una variabile speciale, `geometry`, che contiene i confini. Per disegnarlo si usa `geom_sf()`, che non ha bisogno di `x` e `y`: le coordinate sono in `geometry`.
+
+Lo shapefile contiene solo i confini e il codice di ciascuna regione. Per calcolare i tassi ti serve anche la popolazione, che si trova nella tabella `regioni`, importata anch'essa all'inizio.
+
+Nell'area di prova stampa i due oggetti in console e poi disegna `regioni_sf` con `geom_sf()` e `theme_void()`.
+
+::: {.callout-warning appearance="default" icon="false"}
+## Attenzione: due oggetti per le stesse regioni
+
+`regioni` e `regioni_sf` descrivono le stesse regioni, ma sono diversi:
+
+-   `regioni` è una tabella con una riga per ciascuna regione da A a F, con `codice_regione`, `area` e `popolazione`;
+-   `regioni_sf` è un oggetto `sf` con una riga per ciascuna regione da A a D, quelle della mappa, con `region` e `geometry`.
+
+Il codice della regione si chiama `codice_regione` in `regioni` e `region` in `regioni_sf` e in `dati_clean`: quando unirai `regioni` ai conteggi dovrai indicare la chiave con `join_by()`, come nel Modulo 7.
+:::
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+# IN AREA DI PROVA
+regioni_sf
+regioni
+
+ggplot(data = regioni_sf) +
+  geom_sf() +
+  theme_void()
+
+```
+
+</br>
+
+</details>
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+pacman::p_load(webexercises)
+
+opts <- c(
+  "Una riga per persona vaccinata, con la regione di residenza",
+  "Una riga per regione, con la popolazione e i confini nella variabile geometry",
+  answer = "Una riga per regione, con il codice della regione e i confini nella variabile geometry",
+  "Una riga per ogni punto del confine delle regioni",
+  "Un'immagine della mappa, senza variabili"
+)
+
+
+cat("Che cosa contiene l'oggetto regioni_sf?", longmcq(opts))
+
+```
+:::
+::::
+
+## Mappa con `{sf}`
+
+Per la mappa dei tassi servono due join, uno per ciascuna informazione che manca ai conteggi:
+
+1.  il primo aggiunge la **popolazione**, da `regioni`, e permette di calcolare il tasso;
+2.  il secondo aggiunge la **geometria**, da `regioni_sf`, e permette di disegnare la mappa.
+
+Sopra all'area di prova, nella sezione "Mappe", crea un data frame `vacc_regione` con il numero di vaccinati per regione (variabile `n_vaccinati`). Uniscigli `regioni` con `left_join()` e calcola il tasso di vaccinati ogni 100.000 abitanti, salvando il risultato in `tassi_regione`. Nell'area di prova stampa `tassi_regione`.
+
+<details>
+
+<summary style="text-decoration: underline; color: darkgreen;">
+
+`r fontawesome::fa("lightbulb", fill = "gold")` Clicca per leggere un suggerimento
+
+</summary>
+
+</br>
+
+Le due chiavi hanno nomi diversi: `by = join_by(region == codice_regione)`. Il tasso è `n_vaccinati / popolazione * 100000`.
+
+</br>
+
+</details>
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+# NELLO SCRIPT
+vacc_regione <- dati_clean %>%
+  count(region, name = "n_vaccinati")
+
+# primo join: la popolazione
+tassi_regione <- vacc_regione %>%
+  left_join(regioni, by = join_by(region == codice_regione)) %>%
+  mutate(tasso = n_vaccinati / popolazione * 100000)
+
+# IN AREA DI PROVA
+tassi_regione
+
+```
+
+</br>
+
+</details>
+
+::: {.callout-tip appearance="default" icon="false"}
+## Approfondimento: quali righe tiene `left_join()`
+
+`tassi_regione` ha una riga per ciascuna regione in cui ci sono vaccinati: le regioni E ed F di `regioni` non compaiono, perché il `left_join()` tiene solo le righe di `vacc_regione`.
+
+:::
+
+Ora, nello script, fai il secondo join: unisci `tassi_regione` a `regioni_sf`, salvando il risultato in `mappa_vacc`. Nell'area di prova fai una mappa con il riempimento per il tasso.
+
+<details>
+
+<summary style="text-decoration: underline; color: darkgreen;">
+
+`r fontawesome::fa("lightbulb", fill = "gold")` Clicca per leggere un suggerimento
+
+</summary>
+
+</br>
+
+Parti da `regioni_sf` e unisci i tassi: qui la chiave ha lo stesso nome nelle due tabelle, quindi basta `by = "region"`.
+
+</br>
+
+</details>
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+# NELLO SCRIPT
+# secondo join: la geometria
+mappa_vacc <- regioni_sf %>%
+  left_join(tassi_regione, by = "region")
+
+# IN AREA DI PROVA
+ggplot(data = mappa_vacc) +
+  geom_sf(mapping = aes(fill = tasso)) +
+  theme_void()
+
+```
+
+</br>
+
+</details>
+
+::: {.callout-warning appearance="default" icon="false"}
+## Attenzione all'ordine del join
+
+Nel join con la geometria l'oggetto `sf` deve stare a **sinistra**. Il risultato prende la classe della tabella di sinistra: `regioni_sf %>% left_join(tassi_regione)` resta un oggetto `sf`, mentre `tassi_regione %>% left_join(regioni_sf)` è un data frame normale, in cui `geometry` è una variabile qualsiasi, e `geom_sf()` non lo disegna come ti aspetti.
+:::
+
+Ora, nella sezione "Mappe" dello script, rifinisci la mappa: usa `scale_fill_distiller()` con la palette `"YlOrRd"` e `direction = 1`, aggiungi il nome della regione con `geom_sf_text()`, che funziona come `geom_text()` ma prende la posizione da `geometry`, un titolo e il titolo della legenda.
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+ggplot(data = mappa_vacc) +
+  geom_sf(mapping = aes(fill = tasso)) +
+  geom_sf_text(mapping = aes(label = region)) +
+  scale_fill_distiller(palette = "YlOrRd", direction = 1) +
+  theme_void() +
+  labs(title = "Vaccinati della coorte per regione",
+       fill = "Vaccinati per\n100.000 abitanti")
+
+```
+
+</br>
+
+</details>
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+pacman::p_load(webexercises)
+
+opts <- c(
+  "Sì, perché ha meno vaccinati di tutte le altre regioni",
+  "Sì, perché ha la popolazione più piccola",
+  "No, il tasso più basso è quello della regione C",
+  answer = "No, il tasso più basso è quello della regione B, che ha più vaccinati ma una popolazione più grande"
+)
+
+
+cat("La regione A ha il minor numero di vaccinati. Ha anche il tasso più basso?", longmcq(opts))
+
+```
+:::
+::::
+
+## Mappe per gruppo 
+
+### Tasso per stato HIV
+
+Nell'area di prova, calcola il tasso di vaccinati ogni 100.000 abitanti per regione e `hiv`, con gli stessi due join: prima la popolazione, poi la geometria. Poi, sempre nell'area di prova, fai una mappa con un pannello per `hiv`.
+
+<details>
+
+<summary style="text-decoration: underline; color: darkgreen;">
+
+`r fontawesome::fa("lightbulb", fill = "gold")` Clicca per leggere un suggerimento
+
+</summary>
+
+</br>
+
+Conta per `region` e `hiv`. Unisci `regioni` e calcola il tasso, poi unisci il risultato a `regioni_sf` e usa `facet_wrap(~ hiv)`. Ogni regione compare due volte nel risultato del join con `regioni_sf`, una per ciascun valore di `hiv`: è proprio quello che serve per i due pannelli.
+
+</br>
+
+</details>
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+vacc_regione_hiv <- dati_clean %>%
+  count(region, hiv, name = "n_vaccinati")
+
+# primo join: la popolazione
+tassi_regione_hiv <- vacc_regione_hiv %>%
+  left_join(regioni, by = join_by(region == codice_regione)) %>%
+  mutate(tasso = n_vaccinati / popolazione * 100000)
+
+# secondo join: la geometria
+mappa_hiv <- regioni_sf %>%
+  left_join(tassi_regione_hiv, by = "region")
+
+ggplot(data = mappa_hiv) +
+  geom_sf(mapping = aes(fill = tasso)) +
+  geom_sf_text(mapping = aes(label = region)) +
+  facet_wrap(~ hiv) +
+  scale_fill_distiller(palette = "YlOrRd", direction = 1) +
+  theme_void() +
+  labs(fill = "Vaccinati per\n100.000 abitanti")
+
+```
+
+</br>
+
+</details>
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+pacman::p_load(webexercises)
+
+opts <- c(
+  "Perché le persone con HIV si vaccinano meno dei controlli",
+  answer = "Perché i due pannelli hanno la stessa scala e le persone con HIV sono la metà dei controlli",
+  "Perché facet_wrap() usa colori diversi in ogni pannello",
+  "Perché nel pannello Con HIV mancano alcune regioni"
+)
+
+
+cat("Perché il pannello Con HIV ha colori più chiari?", longmcq(opts))
+
+```
+:::
+::::
+
+### Proporzione di persone con HIV per regione
+
+Nella sezione "Mappe" sopra l'area di prova, fai una mappa della proporzione di persone con HIV tra i vaccinati di ogni regione, con le percentuali scritte sulla mappa.
+
+<details>
+
+<summary style="text-decoration: underline; color: darkgreen;">
+
+`r fontawesome::fa("lightbulb", fill = "gold")` Clicca per leggere un suggerimento
+
+</summary>
+
+</br>
+
+Prima crea un data frame `proporzione_hiv` che, partendo da `dati_clean`, contiene la proporzione di persone con HIV per ciascuna regione, utilizzando `group_by()` e `summarise()`. Unisci poi questo data frame a `regioni_sf`, salvando il risultato in `mappa_prop_hiv`, e infine crea il grafico.
+
+</br>
+
+</details>
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+proporzione_hiv <- dati_clean %>%
+  group_by(region) %>%
+  summarise(proporzione_hiv = mean(hiv == "Con HIV"), .groups = "drop")
+
+mappa_prop_hiv <- regioni_sf %>%
+  left_join(proporzione_hiv, by = "region")
+
+ggplot(data = mappa_prop_hiv) +
+  geom_sf(mapping = aes(fill = proporzione_hiv)) +
+  geom_sf_text(mapping = aes(label = scales::percent(proporzione_hiv, accuracy = 1))) +
+  scale_fill_distiller(palette = "YlOrRd", direction = 1,
+                       labels = scales::label_percent()) +
+  theme_void() +
+  labs(fill = "Proporzione\ncon HIV")
+
+```
+
+</br>
+
+</details>
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+pacman::p_load(webexercises)
+
+opts <- c(
+  "Perché le persone con HIV sono distribuite in modo uniforme sul territorio",
+  "Perché scale_fill_distiller() arrotonda i valori",
+  "Perché le regioni hanno la stessa popolazione",
+  answer = "Perché ogni persona con HIV è appaiata a 2 controlli della stessa regione"
+)
+
+
+cat("Perché la quota è intorno al 33% in tutte le regioni?", longmcq(opts))
+
+```
+:::
+::::
+
+## Piramidi per età e sesso con `{apyramid}`
+
+### La piramide della coorte
+
+`age_pyramid()` del pacchetto `{apyramid}` costruisce una piramide da dati individuali: una barra per classe d'età, a sinistra e a destra secondo una seconda variabile, di solito il sesso. Il risultato è un grafico `{ggplot2}`.
+
+Apri l'help con `?age_pyramid` e leggi gli argomenti. Poi, nell'area di prova, fai una piramide della coorte per classe d'età e sesso, prima con i conteggi e poi con le proporzioni.
+
+<details>
+
+<summary style="text-decoration: underline; color: darkgreen;">
+
+`r fontawesome::fa("lightbulb", fill = "gold")` Clicca per leggere un suggerimento
+
+</summary>
+
+</br>
+
+Gli argomenti `age_group =` e `split_by =` vogliono il nome della variabile tra virgolette. Per le proporzioni: `proportional = TRUE`.
+
+</br>
+
+</details>
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+age_pyramid(data = dati_clean, age_group = "age_cat", split_by = "sex")
+
+age_pyramid(data = dati_clean, age_group = "age_cat", split_by = "sex",
+            proportional = TRUE)
+
+```
+
+</br>
+
+</details>
+
+### Persone con HIV e controlli
+
+Nell'area di prova fai due piramidi con le proporzioni, una per le persone con HIV e una per i controlli, filtrando la coorte.
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+age_pyramid(data = filter(dati_clean, hiv == "Con HIV"),
+            age_group = "age_cat", split_by = "sex",
+            proportional = TRUE)
+
+age_pyramid(data = filter(dati_clean, hiv == "Senza HIV"),
+            age_group = "age_cat", split_by = "sex",
+            proportional = TRUE)
+
+```
+
+</br>
+
+</details>
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+pacman::p_load(webexercises)
+
+opts <- c(
+  "Le persone con HIV sono più spesso maschi e più giovani dei controlli",
+  "Le persone con HIV sono più spesso femmine e più anziane dei controlli",
+  answer = "Sono quasi uguali, perché i controlli sono appaiati per sesso e classe d'età",
+  "Sono diverse, perché le persone con HIV sono la metà dei controlli"
+)
+
+
+cat("Che differenza vedi tra le due piramidi?", longmcq(opts))
+
+```
+:::
+::::
+
+Guarda la legenda delle due piramidi: in una i maschi sono a sinistra, nell'altra a destra. `age_pyramid()` mette a sinistra il primo livello di `split_by`, e `sex` è una variabile di testo, i cui "livelli" dipendono dai dati. Crea una nuova sezione chiamata "Piramidi" sopra l'area di prova (**Ctrl+Shift+R**): qui trasforma `sex` in un `factor` con livelli `"M"` e `"F"`, come hai fatto per `hiv` nel Modulo 3, e rifai le due piramidi.
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+# NELLO SCRIPT
+# Piramidi ----------------------------------------------------------
+dati_clean <- dati_clean %>%
+  mutate(sex = factor(sex, levels = c("M", "F")))
+
+age_pyramid(data = filter(dati_clean, hiv == "Con HIV"),
+            age_group = "age_cat", split_by = "sex",
+            proportional = TRUE)
+
+age_pyramid(data = filter(dati_clean, hiv == "Senza HIV"),
+            age_group = "age_cat", split_by = "sex",
+            proportional = TRUE)
+
+```
+
+</br>
+
+</details>
+
+### Dati già aggregati
+
+Nella sezione "Piramidi" crea un data frame `piramide_agg` con il numero di persone per classe d'età e sesso, escludendo le poche persone con età o sesso mancanti (7 in tutto). Nell'area di prova, fai la piramide da questi conteggi, usando l'argomento `count =` di `age_pyramid()`.
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+# NELLO SCRIPT
+piramide_agg <- dati_clean %>%
+  filter(!is.na(age_cat), !is.na(sex)) %>%
+  count(age_cat, sex)
+
+# IN AREA DI PROVA
+age_pyramid(data = piramide_agg, age_group = "age_cat", split_by = "sex",
+            count = "n")
+
+```
+
+</br>
+
+</details>
+
+### Piramide e `{ggplot2}`
+
+Il risultato di `age_pyramid()` è un grafico `{ggplot2}`, quindi puoi aggiungere livelli con `+`. Nella sezione "Piramidi", sopra l'area di prova, aggiungi alla piramide con le proporzioni `theme_minimal()`, i colori `"#2a9d8f"` per le femmine e `"#e76f51"` per i maschi con `scale_fill_manual()`, e le etichette degli assi e della legenda.
+
+<details>
+
+<summary style="text-decoration: underline; color: darkgreen;">
+
+`r fontawesome::fa("lightbulb", fill = "gold")` Clicca per leggere un suggerimento
+
+</summary>
+
+</br>
+
+La piramide è un grafico a barre ruotato con `coord_flip()`, che hai visto nel Modulo 6: in `labs()`, `x` è l'asse delle classi d'età (verticale) e `y` quello delle proporzioni (orizzontale). R ti avviserà che la scala del riempimento è già presente e viene sostituita: è normale, perché `age_pyramid()` ne crea una sua.
+
+</br>
+
+</details>
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+age_pyramid(data = dati_clean, age_group = "age_cat", split_by = "sex",
+            proportional = TRUE) +
+  theme_minimal() +
+  scale_fill_manual(values = c("F" = "#2a9d8f", "M" = "#e76f51")) +
+  labs(x = "Classe d'età", y = "Proporzione", fill = "Sesso")
+
+```
+
+</br>
+
+</details>
+
+## Lo script completo
+
+Ecco come dovrebbe essere il tuo script per questa esercitazione, con le soluzioni di tutti gli esercizi divise per sezione. Confrontalo con il tuo: i commenti e alcuni dettagli possono essere diversi, ma i comandi devono fare le stesse cose. Lo script completo dei Moduli 5, 6 e 8 lo trovi anche nella cartella `script/backup`, nel file `backup_plot.R`.
+
+<details>
+
+<summary style="text-decoration: underline; color: blue;">
+
+`r fontawesome::fa("check", fill = "blue")` Clicca per vedere lo script
+completo
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+#| eval: false
+
+# All'inizio di plot.R: sezioni già presenti, con le aggiunte del Modulo 08
+
+# Caricamento pacchetti ---------------------------------------------------
+pacman::p_load(
+  rio,       # importazione ed esportazione dei dati
+  skimr,     # panoramica dei dati
+  janitor,   # pulizia dei dati e tabelle
+  lubridate, # lavorare con le date
+  epikit,    # classi di età
+  gtsummary, # tabelle descrittive
+  flextable, # tabelle da presentare
+  tidyverse, # gestione e visualizzazione dei dati
+  sf,        # dati spaziali e mappe          (Modulo 08)
+  apyramid   # piramidi per età e sesso       (Modulo 08)
+)
+
+# Importazione dati -------------------------------------------------------
+dati_clean <- import("dati/dati_clean.rds")
+regioni_sf <- read_sf("dati/shapefiles/regioni.shp")   # Modulo 08
+regioni    <- import("dati/regioni.rds")               # Modulo 08
+
+# ... sezioni dei Moduli 5 e 6 ...
+
+
+# Modulo 08 - Altri grafici ================================================
+
+# Epicurva ----------------------------------------------------------------
+# tutti i lunedì, dalla settimana della prima vaccinazione a quella dopo l'ultima
+settimane <- seq.Date(
+  from = floor_date(min(dati_clean$date_vacc), unit = "week", week_start = 1),
+  to   = ceiling_date(max(dati_clean$date_vacc), unit = "week", week_start = 1),
+  by   = "week")
+
+# curva settimanale: settimane da lunedì a domenica
+ggplot(data = dati_clean, mapping = aes(x = date_vacc)) +
+  geom_histogram(breaks = settimane, closed = "left") +
+  scale_x_date(
+    date_breaks = "1 month",
+    labels = scales::label_date("%b\n%Y", locale = "it")) +
+  labs(x = "Settimana di vaccinazione", y = "Vaccinati")
+
+# vaccinati per settimana, comprese le settimane senza vaccinati
+vacc_settimana <- dati_clean %>%
+  mutate(settimana = floor_date(date_vacc, unit = "week", week_start = 1)) %>%
+  count(settimana) %>%
+  complete(settimana = seq.Date(from = min(settimana), to = max(settimana), by = "week"),
+           fill = list(n = 0))
+
+# curva settimanale con i numeri di settimana ISO
+ggplot(data = vacc_settimana, mapping = aes(x = settimana, y = n)) +
+  geom_col(width = 5) +
+  scale_x_date(
+    breaks = seq.Date(from = min(settimane), to = max(settimane), by = "4 weeks"),
+    labels = scales::label_date("%G-W%V")) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5)) +
+  labs(x = "Settimana di vaccinazione", y = "Vaccinati")
+
+
+# Heatmap -----------------------------------------------------------------
+# quota con Charlson 3+ per classe d'età e stato HIV
+charlson_eta <- dati_clean %>%
+  filter(!is.na(age_cat)) %>%
+  group_by(age_cat, hiv) %>%
+  summarise(
+    n = n(),
+    quota_ch3 = mean(chrls_index %in% c("3-4", "5+")),
+    .groups = "drop")
+
+ggplot(data = charlson_eta, mapping = aes(x = hiv, y = age_cat, fill = quota_ch3)) +
+  geom_tile() +
+  geom_text(mapping = aes(label = paste0(scales::percent(quota_ch3, accuracy = 1),
+                                         "\n(n = ", n, ")"))) +
+  scale_fill_distiller(palette = "YlOrRd", direction = 1,
+                       labels = scales::label_percent()) +
+  labs(x = NULL, y = "Classe d'età", fill = "Charlson 3+")
+
+
+# Mappe -------------------------------------------------------------------
+# tasso di vaccinati per regione
+vacc_regione <- dati_clean %>%
+  count(region, name = "n_vaccinati")
+
+# primo join: la popolazione
+tassi_regione <- vacc_regione %>%
+  left_join(regioni, by = join_by(region == codice_regione)) %>%
+  mutate(tasso = n_vaccinati / popolazione * 100000)
+
+# secondo join: la geometria
+mappa_vacc <- regioni_sf %>%
+  left_join(tassi_regione, by = "region")
+
+ggplot(data = mappa_vacc) +
+  geom_sf(mapping = aes(fill = tasso)) +
+  geom_sf_text(mapping = aes(label = region)) +
+  scale_fill_distiller(palette = "YlOrRd", direction = 1) +
+  theme_void() +
+  labs(title = "Vaccinati della coorte per regione",
+       fill = "Vaccinati per\n100.000 abitanti")
+
+# proporzione di persone con HIV per regione
+proporzione_hiv <- dati_clean %>%
+  group_by(region) %>%
+  summarise(proporzione_hiv = mean(hiv == "Con HIV"), .groups = "drop")
+
+mappa_prop_hiv <- regioni_sf %>%
+  left_join(proporzione_hiv, by = "region")
+
+ggplot(data = mappa_prop_hiv) +
+  geom_sf(mapping = aes(fill = proporzione_hiv)) +
+  geom_sf_text(mapping = aes(label = scales::percent(proporzione_hiv, accuracy = 1))) +
+  scale_fill_distiller(palette = "YlOrRd", direction = 1,
+                       labels = scales::label_percent()) +
+  theme_void() +
+  labs(fill = "Proporzione\ncon HIV")
+
+
+# Piramidi ----------------------------------------------------------------
+# sesso come factor: i maschi sempre a sinistra
+dati_clean <- dati_clean %>%
+  mutate(sex = factor(sex, levels = c("M", "F")))
+
+age_pyramid(data = filter(dati_clean, hiv == "Con HIV"),
+            age_group = "age_cat", split_by = "sex",
+            proportional = TRUE)
+
+age_pyramid(data = filter(dati_clean, hiv == "Senza HIV"),
+            age_group = "age_cat", split_by = "sex",
+            proportional = TRUE)
+
+# conteggi per classe d'età e sesso, per la piramide da dati aggregati
+piramide_agg <- dati_clean %>%
+  filter(!is.na(age_cat), !is.na(sex)) %>%
+  count(age_cat, sex)
+
+# piramide personalizzata con ggplot2
+age_pyramid(data = dati_clean, age_group = "age_cat", split_by = "sex",
+            proportional = TRUE) +
+  theme_minimal() +
+  scale_fill_manual(values = c("F" = "#2a9d8f", "M" = "#e76f51")) +
+  labs(x = "Classe d'età", y = "Proporzione", fill = "Sesso")
+
+
+```
+
+</br>
+
+</details>
+
+## Riepilogo
+
+In questo modulo hai imparato a:
+
+-   costruire un'epicurva partendo dall'istogramma delle date e passando da `binwidth =` a `breaks =`, per avere settimane da lunedì a domenica;
+-   riportare le date al lunedì della settimana o al primo giorno del mese con `floor_date()` e `ceiling_date()` (`unit =`, `week_start = 1`) e creare sequenze di date con `seq.Date()`;
+-   costruire curve con intervalli definiti, passando le date a `breaks =` di `geom_histogram()` con `closed = "left"`;
+-   scrivere le date come settimane ISO con `scales::label_date("%G-W%V")`, e indicare con `width =` la larghezza delle barre di `geom_col()` su un asse di date, in giorni;
+-   aggiungere a una tabella di conteggi le combinazioni mancanti con `complete()` e `fill = list(n = 0)`, prima del grafico;
+-   disegnare heatmap da dati aggregati con `geom_tile()`, colorarle con `scale_fill_gradient()` o `scale_fill_distiller()` e scrivere i valori sulle celle con `geom_text()`;
+-   leggere uno shapefile con `read_sf()` in un oggetto `sf`, un data frame con la variabile `geometry`, e disegnarlo con `geom_sf()`, `geom_sf_text()` e `theme_void()`;
+-   calcolare i tassi con due join: prima la popolazione, da una tabella in cui la chiave ha un nome diverso (`join_by()`), poi la geometria, partendo dall'oggetto `sf`; e usare i tassi per confrontare aree di popolazione diversa;
+-   costruire piramidi per età e sesso con `age_pyramid()` da dati individuali o aggregati (`count =`), controllando l'ordine con un `factor`, e personalizzarle con `{ggplot2}`.
+
+## Risorse aggiuntive
+
+-   Documentazione di `{lubridate}`: <https://lubridate.tidyverse.org/reference/round_date.html> 
+-   Documentazione di `{tidyr}`: <https://tidyr.tidyverse.org/reference/complete.html> 
+-   Documentazione di `geom_tile()`: <https://ggplot2.tidyverse.org/reference/geom_tile.html> 
+-   Documentazione di `geom_sf()`: <https://ggplot2.tidyverse.org/reference/ggsf.html>; 
+-   Documentazione di `{sf}`: <https://r-spatial.github.io/sf/> 
+-   Documentazione di `{apyramid}`: <https://cran.r-project.org/package=apyramid> 
+-   Curve epidemiche, heatmap, mappe e piramidi: *The Epidemiologist R Handbook*: <https://epirhandbook.com/> 
+
+<!-- **Autori** -->
+
+<!-- Autori originali: Nome Cognome (Istituzione), Nome Cognome -->
+<!-- (Istituzione)\ -->
+<!-- Fonte dei dati: [DA COMPLETARE: origine del dataset dati_clean] coorte di -->
+<!-- persone vaccinate con e senza HIV; confini delle regioni e popolazioni -->
+<!-- fittizi; esercizi ispirati al modulo *Heat plots, epicurves, pyramids* -->
+<!-- di Applied Epi (<https://appliedepi.org>)\ -->
+<!-- Adattato da: Nome Cognome (Istituzione), Nome Cognome (Istituzione) -->
+
+<!-- ### Termini di utilizzo -->
+
+<!-- **Disclaimer**: [DA COMPLETARE: indicare se e come i dati sono stati -->
+<!-- modificati rispetto ai dati originali per finalità didattiche.] I confini delle -->
+<!-- regioni e le popolazioni residenti sono inventati e non corrispondono -->
+<!-- ad alcun territorio reale. -->
+
+<!-- Sei libero di: -->
+
+<!-- -   **Condividere**: copiare e distribuire il materiale -->
+<!-- -   **Remixare**: adattare e costruire nuovo materiale a partire da -->
+<!--     questo -->
+
+<!-- Alle seguenti condizioni: -->
+
+<!-- -   **Attribuzione**: devi attribuire il materiale nel modo specificato -->
+<!--     dall'autore o dal licenziante (ma non in un modo che suggerisca che -->
+<!--     essi avallino te o il tuo utilizzo dell'opera). Il modo migliore per -->
+<!--     farlo è mantenere invariato l'elenco dei contributori: fonti, autori -->
+<!--     e revisori. -->
+<!-- -   **Condividi allo stesso modo**: se modifichi, trasformi o costruisci -->
+<!--     nuovo materiale a partire da questo, puoi distribuire il risultato -->
+<!--     solo con una licenza uguale o simile a questa. Le modifiche -->
+<!--     apportate devono essere documentate. A questa condizione, puoi -->
+<!--     aggiungere il tuo nome all'elenco dei contributori. -->
+<!-- -   **Notifica**: se utilizzi il materiale nel modo specificato -->
+<!--     dall'autore o dal licenziante, scrivi a -->
+<!--     [nome\@iss.it](mailto:nome@iss.it) -->
+<!-- -   Non puoi vendere questo materiale da solo, ma puoi utilizzarlo come -->
+<!--     parte di un'attività didattica. -->
+
+<!-- Resta inteso che: -->
+
+<!-- -   **Rinuncia**: una qualsiasi delle condizioni sopra può essere -->
+<!--     derogata previa autorizzazione del titolare dei diritti d'autore. -->
+<!-- -   **Pubblico dominio**: se l'opera, o un suo elemento, è di pubblico -->
+<!--     dominio ai sensi della legge applicabile, tale condizione non è in -->
+<!--     alcun modo modificata dalla licenza. -->
+<!-- -   **Altri diritti**: la licenza non pregiudica in alcun modo i -->
+<!--     seguenti diritti: -->
+<!--     -   il diritto di utilizzo corretto ("fair dealing"/"fair use"), o -->
+<!--         altre eccezioni e limitazioni al diritto d'autore applicabili; -->
+<!--     -   i diritti morali dell'autore; -->
+<!--     -   i diritti che altre persone possono avere sull'opera stessa o -->
+<!--         sul modo in cui viene utilizzata, come i diritti di immagine o -->
+<!--         di riservatezza. -->
+<!-- -   **Avviso**: per qualsiasi riutilizzo o distribuzione, devi rendere -->
+<!--     chiari agli altri i termini della licenza di questo materiale, -->
+<!--     mantenendo insieme l'opera e la licenza corrente. -->
+
+<!-- Questa licenza si basa su -->
+<!-- <http://creativecommons.org/licenses/by-sa/3.0/> -->
+
+<!-- ### Versione e revisioni -->
+
+<!-- Data della prima versione:  -->
+<!-- | Data | Modifiche apportate | Autore | -->
+<!-- |------|---------------------|--------| -->
+<!-- |      |                     |        | -->

@@ -1,0 +1,54 @@
+# ================================================================
+# .gitignore del sito del corso
+# ================================================================
+# Regola: git IGNORA TUTTO, tranne i file elencati sotto con "!".
+# Cosi' le cartelle con dati reali o materiale per i docenti
+# (dati_originali, OLD, dati_docenti, ...) non possono finire su
+# GitHub per sbaglio, neanche se in futuro se ne aggiungono altre.
+# Per pubblicare un file nuovo, aggiungilo qui sotto con "!".
+# ================================================================
+
+/*
+
+# --- configurazione del progetto e del sito
+!/.gitignore
+!/README.md
+!/corso_R_2026.Rproj
+!/_quarto.yml
+!/iss.scss
+!/sito.css
+!/webex.css
+!/webex.js
+!/crea_zip_materiali.R
+
+# --- pagine del sito
+!/index.qmd
+!/preparazione.qmd
+!/dati.qmd
+!/licenza.qmd
+!/modulo1_intro.qmd
+!/modulo2_data_cleaning.qmd
+!/modulo3_data_cleaning_avanzato.qmd
+!/modulo4_tabelle_e_aggregazione.qmd
+!/modulo5_ggplot_parte1.qmd
+!/modulo6_ggplot_parte2.qmd
+!/modulo7_trasformazione_e_integrazione.qmd
+!/modulo8_altri_grafici.qmd
+!/modulo9_quarto.qmd
+!/immagini/
+
+# --- materiale per gli studenti (lo zip viene creato dal render)
+!/materiali_corso_R/
+/materiali_corso_R/*
+!/materiali_corso_R/dati/
+!/materiali_corso_R/script/
+/materiali_corso_R/script/*
+!/materiali_corso_R/script/backup/
+
+# --- in ogni caso, mai: file di lavoro di R e RStudio
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+/.quarto/
+**/*.quarto_ipynb

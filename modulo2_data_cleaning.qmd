@@ -1,0 +1,1838 @@
+---
+output: html_document
+editor_options:
+  chunk_output_type: console
+execute:
+  warning: false
+  error: false
+format:
+  html:
+    css: webex.css
+    include-after-body: webex.js
+    df-print: kable
+    toc: true
+    toc-depth: 4
+    toc-expand: 1
+editor:
+  markdown:
+    wrap: 72
+title: |
+  ![](immagini/logo_dmi.png){width=3in}
+---
+
+```{r}
+#| include: false
+pacman::p_load(
+  rio,
+  here,
+  skimr,
+  janitor,
+  lubridate,
+  epikit,
+  gtsummary,
+  tidyverse,
+  webexercises
+)
+
+dati_raw <- import("dati/dataset_esercitazione_raw.csv")
+
+```
+
+# **Corso introduttivo al software statistico R**
+
+# Modulo 02 Pulizia e preparazione dei dati
+
+## Obiettivi del modulo
+
+-   Individuare i problemi di qualità dei dati
+-   Costruire una catena di pulizia con l'operatore pipe `%>%` per
+    standardizzare i nomi delle variabili, selezionare le variabili
+    utili e rimuovere le righe duplicate
+-   Gestire i valori mancanti e convertire le variabili nella classe
+    corretta
+-   Convertire le stringhe di testo in date
+
+## Formato dell'esercizio
+
+<!-- Il paragrafo sotto è fisso: -->
+
+Questo esercizio è progettato per essere una guida e per aiutarti a
+completarlo in autonomia. Ti consigliamo fortemente di provare a
+eseguire il codice prima di guardare le soluzioni. Per aiutarti, abbiamo
+incluso in alcuni punti dei suggerimenti che possono indirizzarti nella
+direzione giusta. Li troverai così:
+
+```{=html}
+<!-- ISTRUZIONI: Questo blocco "Suggerimento" va inserito ogni volta 
+     che vuoi dare un aiuto parziale allo studente senza svelare 
+     subito la soluzione (es. il nome di una funzione da usare, o un 
+     argomento a cui prestare attenzione). Copia l'intero blocco 
+     <details>...</details> e modifica solo il testo dopo </br>. -->
+```
+
+<details>
+
+<summary style="text-decoration: underline; color: darkgreen;">
+
+`r fontawesome::fa("lightbulb", fill = "gold")` Clicca per leggere un
+suggerimento
+
+</summary>
+
+</br>
+
+Questo è un suggerimento.
+
+</br>
+
+</details>
+
+Le soluzioni, invece, avranno questo aspetto:
+
+```{=html}
+<!-- ISTRUZIONI: Questo blocco "Soluzione" va inserito alla fine di 
+     ogni esercizio (o sotto-punto) e deve contenere codice R 
+     eseguibile e commentato. Copia l'intero blocco 
+     <details>...</details> e sostituisci il codice di esempio. Se la 
+     soluzione richiede più passaggi, aggiungi commenti # nel codice 
+     per spiegare ogni passaggio. Ricorda: niente etichette (label) 
+     nei chunk, come indicato nelle istruzioni generali. -->
+```
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+print("Questo è un esempio di soluzione")
+
+```
+
+</br>
+
+</details>
+
+Durante l'esercizio troverai anche domande a risposta multipla, che
+servono a verificare se stai seguendo correttamente lo svolgimento. Le
+domande saranno simili a questa:
+
+```{=html}
+<!-- ISTRUZIONI: Questo blocco "Domanda" usa il pacchetto 
+     `{webexercises}` per creare quiz a risposta multipla 
+     auto-correttivi. Copia l'intero blocco ::: {.callout-note}...::: 
+     e:
+       - scrivi le opzioni di risposta nel vettore "opts"
+       - indica la risposta corretta con answer = "..."
+       - scrivi il testo della domanda dentro cat("Domanda: ...")
+     Inserisci una domanda ogni volta che vuoi far verificare allo 
+     studente di aver capito un concetto chiave prima di proseguire. -->
+```
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+pacman::p_load(webexercises)
+
+opts <- c(
+  "2",
+  "5",
+  answer = "4"
+)
+
+
+cat("Domanda di esempio: quanto fa 2 + 2?", longmcq(opts))
+
+```
+:::
+::::
+
+Lungo il modulo troverai anche due tipi di riquadri colorati. I riquadri
+**gialli** segnalano errori frequenti o punti in cui R si comporta in
+modo inatteso: leggili sempre, perché possono farti risparmiare tempo.
+
+```{=html}
+<!-- ISTRUZIONI: Il box giallo "Attenzione a …" va usato per avvisi
+     importanti: errori comuni, comportamenti di R che possono
+     sorprendere, passaggi da non saltare. Il titolo inizia sempre con
+     "Attenzione a" (es. "Attenzione ai nomi con spazi"). Copia
+     l'intero blocco ::: {.callout-warning ...} ... ::: e modifica
+     solo titolo e testo. -->
+```
+
+::: {.callout-warning appearance="default" icon="false"}
+## Attenzione a …
+
+Questo è un esempio di riquadro di attenzione.
+:::
+
+I riquadri **verdi** contengono invece approfondimenti facoltativi, per
+chi vuole andare un po' oltre: puoi saltarli senza perdere il filo
+dell'esercizio e tornarci in un secondo momento.
+
+```{=html}
+<!-- ISTRUZIONI: Il box verde "Approfondimento: …" va usato per
+     contenuti facoltativi: funzioni alternative, scorciatoie, casi
+     più avanzati. Lo studente deve poter completare l'esercizio anche
+     senza leggerlo. Il titolo inizia sempre con "Approfondimento:"
+     (es. "Approfondimento: gestire le date in R"). Copia l'intero
+     blocco ::: {.callout-tip ...} ... ::: e modifica solo titolo e
+     testo. -->
+```
+
+::: {.callout-tip appearance="default" icon="false"}
+## Approfondimento: …
+
+Questo è un esempio di riquadro di approfondimento.
+:::
+
+Ti consigliamo di provare comunque a rispondere e a eseguire il codice
+da solo prima di consultare suggerimenti e soluzioni: è così che si
+impara davvero a usare R.
+
+## Preparazione
+
+Nell'esercitazione del pomeriggio continuerai a lavorare sullo stesso
+script di questa mattina, `pulizia_dati.R`:
+
+-   se il progetto R è ancora aperto, vai in fondo allo script;
+-   se invece l'hai chiuso, riapri il progetto: RStudio riapre anche lo
+    script su cui stavi lavorando questa mattina, anche se non lo avevi
+    salvato.
+
+In entrambi i casi, crea in fondo allo script una nuova sezione chiamata
+"Modulo 2 - Pulizia e preparazione dei dati" con la combinazione di
+tasti **Ctrl + Shift + R** (**Cmd + Shift + R** su Mac): qui scriverai
+il codice dell'esercitazione del pomeriggio. Ricordati di salvare spesso
+il lavoro (**Ctrl + S**, oppure **Cmd + S** su Mac).
+
+## Iniziamo!
+
+`r fontawesome::fa("play", fill = "darkgreen")` **Da qui comincia
+l'esercitazione.**
+
+## La catena di pulizia
+
+Tutti i passaggi di pulizia verranno raccolti in **un'unica catena** di
+comandi, collegati dall'operatore "pipe" `%>%`. Puoi leggere `%>%` come
+"e poi": prendi i dati, *e poi* sistema i nomi, *e poi* togli i
+duplicati, e così via. Il simbolo dell'operatore pipe si scrive con la
+scorciatoia **Ctrl+Shift+M** (**Cmd+Shift+M** su Mac). In R esiste anche
+un operatore pipe "nativo", `|>`, che funziona in modo molto simile: in
+questo corso useremo `%>%`.
+
+Una catena di pulizia ha tre componenti:
+
+1.  a sinistra dell'operatore di assegnazione `<-`, il nome del **nuovo
+    oggetto** che verrà creato e che conterrà i dati puliti (`dati`);
+2.  a destra di `<-`, il nome del dataset **di partenza**, quello su cui
+    stai lavorando e a cui vuoi applicare le modifiche (`dati_raw`),
+    seguito da `%>%`;
+3.  nelle righe successive, le funzioni di pulizia, collegate da `%>%`.
+
+Nell'esempio sotto `prima_funzione()`, `seconda_funzione()` e
+`terza_funzione()` **non sono funzioni vere**: sono solo segnaposto per
+mostrare la struttura. Al loro posto metterai, una alla volta, le
+funzioni che vedrai nelle prossime sezioni.
+
+```{r}
+#| eval: false
+dati <- dati_raw %>%
+  prima_funzione() %>%
+  seconda_funzione() %>%
+  terza_funzione()
+```
+
+L'intera catena è un **unico comando**: ogni volta che aggiungi una
+funzione, riesegui tutta la catena (seleziona dall'inizio alla fine e
+premi Ctrl+Invio). Poiché il comando usa `<-`, il risultato non viene
+stampato nella console ma salvato in `dati`: per vederlo clicca su
+`dati` nel pannello **Environment** oppure usa `View(dati)`. Ti
+consigliamo di guardare il dataset dopo ogni passaggio.
+
+::: {.callout-warning appearance="default" icon="false"}
+## Attenzione alle catene lunghe
+
+Rieseguire ogni volta tutta la catena va bene quando, come nel nostro
+caso, i dati sono "leggeri" e i comandi richiedono pochi secondi. Con
+dataset molto grandi o operazioni lente, rilanciare tutto a ogni
+modifica può diventare poco efficiente: in quei casi conviene salvare
+dei risultati intermedi e lavorare a blocchi.
+:::
+
+## Standardizzare i nomi delle variabili
+
+Crea una nuova sezione nello script, "Pulizia dei dati"
+(**Ctrl+Shift+R**): qui costruirai la catena di pulizia.
+
+Come prima cosa, guardiamo come sono scritti i nomi delle variabili:
+
+```{r}
+#| eval: false
+names(dati_raw)
+```
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+pacman::p_load(webexercises)
+
+opts <- c(
+  "Il nome del dataset",
+  answer = "I nomi delle variabili del dataset",
+  "Il nome del progetto R"
+)
+
+
+cat("Che cosa osservi in console?", longmcq(opts))
+```
+:::
+::::
+
+I nomi contengono spazi (`Age group`), maiuscole irregolari (`REGION`,
+`AGE`) e trattini (`End_Follow-Up`): sono scomodi da scrivere e facili
+da sbagliare.
+
+::: {.callout-warning appearance="default" icon="false"}
+## Attenzione ai nomi con spazi
+
+Se il nome di una variabile contiene uno spazio, R non lo riconosce come
+un nome unico. `dati_raw$Age group` dà errore: il nome va racchiuso tra
+**apici inversi** (backtick, `` ` ``), cioè `` dati_raw$`Age group` ``.
+Gli spazi possono anche essere difficili da vedere: la variabile
+`Event  date` ha **due** spazi tra le parole.
+:::
+
+### Pulizia automatica dei nomi
+
+La funzione `clean_names()` del pacchetto `{janitor}` sistema i nomi in
+automatico: rende tutti i nomi minuscoli, trasforma spazi e trattini in
+trattini bassi (`_`) e rimuove i caratteri speciali. È molto facile da
+usare e ti permette di risolvere attraverso una singola riga di codice
+diversi problemi.
+
+Inizia la catena di pulizia: parti da `dati_raw`, applica
+`clean_names()` e salva il risultato in `dati`. Poi guarda i nuovi nomi
+con `names(dati)`.
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+#| eval: false
+
+# Pulizia dei dati --------------------------------------------------------
+dati <- dati_raw %>%
+  # pulizia automatica dei nomi delle variabili
+  clean_names()
+```
+
+</br>
+
+</details>
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+opts <- c(
+  "Le variabili sono state rinominate in italiano",
+  answer = "I nomi sono tutti minuscoli e spazi e trattini sono diventati trattini bassi (_)",
+  "Le variabili con nomi non validi sono state eliminate"
+)
+
+cat("Confronta names(dati_raw) e names(dati): cosa è cambiato?", longmcq(opts))
+```
+:::
+::::
+
+### Pulizia manuale dei nomi
+
+Adesso proviamo invece a cambiare a mano il nome delle variabili, per
+renderli più brevi o più chiari. Lo strumento principale è la funzione
+`rename()` del pacchetto `{dplyr}` (incluso nel `{tidyverse}`). A
+partire dalla tabella sottostante rinomina le variabili:
+
+| Vecchio nome       | Nuovo nome    |
+|--------------------|---------------|
+| `subject_id`       | `id_subject`  |
+| `charlson_index`   | `chrls_index` |
+| `charlson_score`   | `chrls_score` |
+| `vaccination_date` | `date_vacc`   |
+| `end_follow_up`    | `date_end_fu` |
+| `event_date`       | `date_event`  |
+
+La sintassi di base di `rename()` dentro la catena è questa:
+
+```{r}
+#| eval: false
+dati <- dati_raw %>%
+  clean_names() %>%
+  rename(
+    NUOVOnome = VECCHIOnome
+  )
+```
+
+### Aggiungi alla catena di pulizia
+
+Aggiungi `rename()` alla catena, dopo `clean_names()`, con i sei nuovi
+nomi della tabella. Poi controlla il risultato con `names(dati)`.
+
+<details>
+
+<summary style="text-decoration: underline; color: darkgreen;">
+
+`r fontawesome::fa("lightbulb", fill = "gold")` Clicca per leggere un
+suggerimento
+
+</summary>
+
+</br>
+
+-   Ogni modifica segue lo schema **NUOVO = VECCHIO**.
+-   Se cambi più nomi, separa le coppie con una virgola.
+-   Non mettere la virgola dopo l'ultima coppia.
+
+</br>
+
+</details>
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+Aggiungi in fondo alla catena (ricorda il `%>%` alla fine della riga
+precedente):
+
+```{r}
+#| echo: true
+#| eval: false
+
+  # pulizia manuale dei nomi delle variabili
+  rename(
+    # NUOVO        # VECCHIO
+    id_subject  = subject_id,
+    chrls_index = charlson_index,
+    chrls_score = charlson_score,
+    date_vacc   = vaccination_date,
+    date_end_fu = end_follow_up,
+    date_event  = event_date
+  )
+```
+
+</br>
+
+</details>
+
+## Crea un'area di prova
+
+Aggiungi in fondo allo script una nuova sezione, "**Area di prova**"
+(**Ctrl+Shift+R**). Più avanti, quando creerai altre sezioni per questa
+esercitazione, inseriscile sopra l'area di prova, così che resti sempre
+l'ultima sezione dello script.
+
+Ti capiterà spesso di voler provare un comando che non fa (ancora) parte
+della catena di pulizia: puoi farlo qui. Questa sezione contiene comandi
+indipendenti dalla catena: pensala come un "campo giochi" in cui provare
+le cose prima di modificare la catena. Ricordati però che questa sezione
+funziona come tutte le altre, quindi se assegni un valore a un oggetto
+già esistente con `<-`, questo verrà sovrascritto. Per sperimentare
+senza rischi, puoi sempre creare un oggetto con un nuovo nome se
+necessario.
+
+## Selezionare ed eliminare le variabili
+
+La funzione `select()` del pacchetto `{dplyr}` serve a scegliere le
+variabili di un dataset. È molto versatile e si usa spesso per:
+
+-   tenere alcune variabili
+-   eliminare alcune variabili
+-   cambiare l'ordine delle variabili
+
+### Selezionare le variabili da tenere
+
+Lo scopo principale di `select()` è scegliere le variabili da
+**tenere**: tutte quelle non indicate tra le parentesi vengono
+eliminate.
+
+Scrivi il comando sotto nella tua **area di prova** ed eseguilo. Prende
+il dataset `dati` (pulito solo in parte), seleziona tre variabili e
+stampa il risultato senza salvarlo. Aggiungiamo `head()` per stampare
+solo le prime 6 righe, invece di tutte le righe del dataset.
+
+```{r}
+#| eval: false
+dati %>%
+  select(id_subject, sex, age) %>%
+  head()
+```
+
+Se invece volessimo stampare le ultime 6 righe del dataset, potremmo
+aggiungere `tail()`:
+
+```{r}
+#| eval: false
+dati %>%
+  select(id_subject, sex, age) %>%
+  tail()
+```
+
+Cosa noti nell'ordine delle variabili? `select()` le **riordina**
+secondo l'ordine in cui le scrivi. Per spostare alcune variabili
+all'inizio senza eliminare le altre, puoi terminare con `everything()`
+(nota le parentesi vuote), che include tutte le variabili rimanenti:
+
+```{r}
+#| eval: false
+dati %>%
+  select(sex, age, everything()) %>%
+  head()
+```
+
+Scrivere a mano il nome di ogni variabile può essere faticoso. Con i due
+punti (`:`) puoi tenere le due variabili indicate e **tutte quelle che**
+**stanno in mezzo**. Prova nell'area di prova:
+
+```{r}
+#| eval: false
+# tiene date_vacc, date_event e le variabili in mezzo
+dati %>%
+  select(date_vacc:date_event) %>%
+  head()
+```
+
+Il `{tidyverse}` offre anche altre funzioni di "aiuto" alla selezione,
+per esempio `starts_with()` (variabili il cui nome **inizia** con un
+certo testo) e `contains()` (variabili il cui nome **contiene** un certo
+testo). Puoi leggerne di più nel capitolo sulla pulizia dei dati
+dell'Epi R Handbook (vedi le Risorse aggiuntive). Prova nell'area di
+prova:
+
+```{r}
+#| eval: false
+# tutte le variabili il cui nome inizia con "date_"
+dati %>%
+  select(starts_with("date_")) %>%
+  head()
+
+# tutte le variabili il cui nome contiene "chrls"
+dati %>%
+  select(contains("chrls")) %>%
+  head()
+```
+
+Vedi come è utile mettere "date" all'inizio dei nomi delle variabili di
+date?
+
+### Eliminare le variabili
+
+Con il segno meno (`-`) si fa il contrario: si indicano le variabili da
+**eliminare** e tutte le altre vengono mantenute. Prova nell'area di
+prova a eliminare una sola variabile:
+
+```{r}
+#| eval: false
+dati %>%
+  select(-group) %>%
+  head()
+```
+
+Per eliminare più variabili insieme, racchiudi i loro nomi in un vettore
+con `c()` (la funzione per "concatenare" che hai visto nel Modulo 1): il
+segno meno si applica a tutte. I due comandi sotto sono equivalenti:
+
+```{r}
+#| eval: false
+dati %>%
+  select(-c(group, chrls_score, age)) %>%
+  head()
+
+dati %>%
+  select(-group, -chrls_score, -age) %>%
+  head()
+```
+
+Infine, `select()` permette anche di **rinominare** le variabili mentre
+le seleziona, con la stessa sintassi di `rename()` (NUOVO = VECCHIO). Ma
+attenzione: tiene solo le variabili che scrivi!
+
+```{r}
+#| eval: false
+dati %>%
+  select(id = id_subject, sex) %>%
+  head()
+```
+
+### Aggiungi alla catena di pulizia
+
+Le variabili `row_number_original` e `internal_note` sono variabili "di
+servizio" di chi ha prodotto i dati (un numero di riga e delle note
+interne): non servono per le nostre analisi. Aggiungi alla catena un
+`select()` che le elimini.
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+Aggiungi in fondo alla catena (ricorda il `%>%` alla fine della riga
+precedente):
+
+```{r}
+#| echo: true
+#| eval: false
+
+  # eliminazione delle variabili non necessarie
+  select(-row_number_original, -internal_note)
+```
+
+</br>
+
+</details>
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+opts <- c(
+  "14",
+  answer = "12",
+  "2"
+)
+
+cat("Riesegui la catena e controlla il pannello Environment (oppure usa ncol(dati) nell'area di prova): quante variabili ha ora dati?", longmcq(opts))
+```
+:::
+::::
+
+## Rimuovere le righe duplicate
+
+Un problema frequente nei dati sono le **righe duplicate**: lo stesso
+record compare due o più volte, per esempio perché è stato inserito due
+volte o perché due file sono stati uniti male. Se non le togli, quel
+soggetto viene contato più volte e tutte le analisi successive
+(frequenze, tassi, medie) risultano sbagliate.
+
+Nel nostro dataset ogni riga è un soggetto, identificato da
+`id_subject`: ogni valore di `id_subject` dovrebbe quindi comparire una
+sola volta. Come capire se è così? Esegui `skim()` nell'area di prova e
+guarda con attenzione la riga di `id_subject`:
+
+```{r}
+#| eval: false
+skim(dati)
+```
+
+Confronta il numero di righe (*Number of rows*, in alto nel riepilogo)
+con il numero di valori diversi di `id_subject` (colonna `n_unique`):
+che cosa noti?
+
+Puoi fare lo stesso confronto anche con due comandi: `nrow()` conta le
+righe, `n_distinct()` conta i valori diversi.
+
+```{r}
+#| eval: false
+nrow(dati)
+n_distinct(dati$id_subject)
+```
+
+Ci sono più righe che soggetti: alcune righe sono ripetute. La funzione
+`distinct()`, con le parentesi vuote, rimuove le righe **identiche al
+100%**: tra le righe che hanno lo stesso valore in tutte le variabili,
+tiene solo la prima.
+
+### Aggiungi alla catena di pulizia
+
+Aggiungi `distinct()` alla catena ed eseguila.
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+Aggiungi in fondo alla catena (ricorda il `%>%` alla fine della riga
+precedente):
+
+```{r}
+#| echo: true
+#| eval: false
+
+  # rimozione delle righe duplicate
+  distinct()
+```
+
+</br>
+
+</details>
+
+Sono state rimosse delle righe?
+
+<details>
+
+<summary style="text-decoration: underline; color: darkgreen;">
+
+`r fontawesome::fa("lightbulb", fill = "gold")` Clicca per leggere un
+suggerimento
+
+</summary>
+
+</br>
+
+Confronta il numero di righe di `dati` e di `dati_raw` nel pannello
+Environment, oppure esegui nell'area di prova:
+
+```{r}
+#| eval: false
+nrow(dati_raw) - nrow(dati)
+```
+
+</br>
+
+</details>
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+opts <- c(
+  "Nessuna: ogni soggetto compariva una sola volta",
+  answer = "5",
+  "12"
+)
+
+cat("Quante righe duplicate ha rimosso distinct()?", longmcq(opts))
+```
+:::
+::::
+
+::: {.callout-tip appearance="default" icon="false"}
+## Approfondimento: duplicati in base a una sola variabile
+
+`distinct(id_subject)` considera "duplicate" le righe con lo stesso
+valore di `id_subject`, anche se le altre variabili sono diverse. Ma
+attenzione: per impostazione predefinita **elimina tutte le altre
+variabili**. Per mantenerle si aggiunge `.keep_all = TRUE`. Confronta i
+risultati nell'area di prova:
+
+```{r}
+#| eval: false
+dati %>% distinct(id_subject) %>% names()
+
+dati %>% distinct(id_subject, .keep_all = TRUE) %>% names()
+```
+
+Puoi approfondire nel capitolo sulla deduplicazione dell'Epi R Handbook
+(vedi le Risorse aggiuntive).
+:::
+
+## Gestire i valori mancanti
+
+### Come R rappresenta i valori mancanti
+
+In R un valore mancante è rappresentato da un valore speciale, `NA`,
+scritto **senza virgolette**. Solo `NA` viene riconosciuto da R come
+dato mancante, e solo così le funzioni lo gestiscono correttamente (per
+esempio escludendolo dai calcoli). Nei dati, però, i mancanti possono
+essere scritti in molti altri modi:
+
+| Valore nel dataset        | Come appare nel Viewer | `is.na()` |
+|---------------------------|------------------------|-----------|
+| `NA`                      | *NA* (in corsivo)      | `TRUE`    |
+| `""` (testo vuoto)        | (vuoto)                | `FALSE`   |
+| `"NA"` (testo)            | NA                     | `FALSE`   |
+| `"Unknown"`, `"N/D"`      | Unknown, N/D           | `FALSE`   |
+| `"9"`, `"99999"` (codici) | 9, 99999               | `FALSE`   |
+
+La funzione `is.na()` risponde alla domanda "questo valore è `NA`?".
+Prova nell'area di prova:
+
+```{r}
+#| eval: false
+is.na(c(NA, "", "NA", "Unknown", "99999"))
+```
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+opts <- c(
+  "TRUE: il testo vuoto è un valore mancante",
+  answer = "FALSE: per R il testo vuoto è un valore come un altro"
+)
+
+cat("Cosa restituisce is.na(\"\"), cioè is.na() applicata a un testo vuoto?", longmcq(opts))
+```
+:::
+::::
+
+### I valori mancanti nei nostri dati
+
+Prima di correggerli, dobbiamo scoprire come sono scritti i valori
+mancanti nel nostro dataset. La funzione `tabyl()` del pacchetto
+`{janitor}` conta le righe per ciascun valore di una variabile: così
+saltano all'occhio i valori "strani". Eseguila nell'area di prova su
+alcune variabili:
+
+```{r}
+#| eval: false
+dati %>% tabyl(sex)
+dati %>% tabyl(age_group)
+dati %>% tabyl(hiv_status)
+dati %>% tabyl(age) %>% tail()
+```
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+opts <- c(
+  "Come NA",
+  "Con il codice 999999",
+  answer = "Con i testi \"Unknown\" e \"N/D\""
+)
+
+cat("Guardando gli ultimi valori di tabyl(age), come sono codificati i valori mancanti dell'età?", longmcq(opts))
+```
+:::
+::::
+
+In tutto troverai:
+
+-   `"Unknown"` in `sex` e `age_group`
+-   `"Unknown"` e `"N/D"` in `age`
+-   `"999999"` in `age_group` e i codici `"9"` e `"99999"` in
+    `hiv_status`: numeri "impossibili" usati spesso nei flussi di dati
+    per indicare un valore non noto
+-   celle vuote `""` in diverse variabili (`region`, `age_group`,
+    `hiv_status`, `date_event`): nel riepilogo di `skim()` le hai viste
+    nella colonna `empty`
+
+### Trasformare i codici in `NA`: `na_if()`
+
+Per modificare una variabile si usa la funzione `mutate()`, con la
+sintassi `mutate(variabile = funzione(variabile))`. `mutate()` serve sia
+a creare nuove variabili sia a modificare quelle esistenti.
+
+La funzione `na_if(variabile, "valore")` sostituisce il valore indicato
+con `NA`. Il comando per trasformare `"Unknown"` in `NA` nella variabile
+`sex` è quindi:
+
+```{r}
+#| eval: false
+mutate(sex = na_if(sex, "Unknown"))
+```
+
+Si legge: "modifica `sex` in modo che diventi `sex` con ogni `"Unknown"`
+sostituito da `NA`". Questo comando va aggiunto alla catena: da solo non
+funziona.
+
+### Trasformare le celle vuote in `NA`
+
+Anche le celle vuote si trasformano in `NA` con `na_if()`: basta
+indicare come valore il testo vuoto `""`. Per esempio, per la regione:
+
+```{r}
+#| eval: false
+mutate(region = na_if(region, ""))
+```
+
+::: {.callout-tip appearance="default" icon="false"}
+## Approfondimento: una scorciatoia con `across()`
+
+Quando le celle vuote sono in molte variabili, invece di scrivere un
+`na_if()` per ciascuna si può usare un unico comando con `across()`, che
+applica `na_if()` a **tutte** le variabili di testo:
+
+```{r}
+#| eval: false
+mutate(across(.cols = where(is.character), .fns = ~ na_if(.x, "")))
+```
+
+Si legge: "in tutte le variabili di classe character, trasforma ogni
+`""` in `NA`". È un comando di livello intermedio: per ora basta sapere
+che esiste. Se vuoi approfondire, trovi `across()` nel capitolo sulla
+pulizia dei dati dell'Epi R Handbook (vedi le Risorse aggiuntive).
+:::
+
+### Aggiungi alla catena di pulizia
+
+Aggiungi alla catena un `mutate()` con un `na_if()` per ciascun codice
+di valore mancante e per ciascuna variabile con celle vuote (`region`,
+`age_group`, `hiv_status`, `date_event`). Non serve ripetere `mutate()`
+ogni volta: dentro lo stesso `mutate()` puoi scrivere più modifiche,
+separate da una virgola, una per riga.
+
+<details>
+
+<summary style="text-decoration: underline; color: darkgreen;">
+
+`r fontawesome::fa("lightbulb", fill = "gold")` Clicca per leggere un
+suggerimento
+
+</summary>
+
+</br>
+
+-   `na_if()` sostituisce un solo valore alla volta: per trasformare in
+    `NA` sia `"Unknown"` sia `"N/D"` in `age` servono due righe, una
+    dopo l'altra, entrambe dentro lo stesso `mutate()`.
+-   Come in `rename()`, separa le modifiche con una virgola e non
+    mettere la virgola dopo l'ultima.
+
+</br>
+
+</details>
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+Aggiungi in fondo alla catena (ricorda il `%>%` alla fine della riga
+precedente):
+
+```{r}
+#| echo: true
+#| eval: false
+
+  mutate(
+    # codici di valore mancante -> NA
+    sex        = na_if(sex, "Unknown"),
+    age        = na_if(age, "Unknown"),
+    age        = na_if(age, "N/D"),
+    age_group  = na_if(age_group, "Unknown"),
+    age_group  = na_if(age_group, "999999"),
+    hiv_status = na_if(hiv_status, "9"),
+    hiv_status = na_if(hiv_status, "99999"),
+    # celle vuote "" -> NA
+    region     = na_if(region, ""),
+    age_group  = na_if(age_group, ""),
+    hiv_status = na_if(hiv_status, ""),
+    date_event = na_if(date_event, "")
+  )
+```
+
+</br>
+
+</details>
+
+### Contare i valori mancanti
+
+Riesegui `tabyl()` su `sex` e `hiv_status` nell'area di prova: ora i
+mancanti compaiono come `NA`, e nella colonna `valid_percent` `tabyl()`
+calcola le percentuali escludendoli.
+
+Come si contano i valori mancanti? Applicata a una variabile, `is.na()`
+restituisce un valore **logico** per ogni elemento: `TRUE` se il valore
+è mancante, `FALSE` se è presente.
+
+```{r}
+#| echo: true
+is.na(c("M", NA, "F", NA))
+```
+
+Quando si fanno calcoli con valori logici, R considera ogni `TRUE` come
+1 e ogni `FALSE` come 0. Per questo `sum()` applicata a un vettore
+logico **conta i `TRUE`**, cioè, qui, i valori mancanti:
+
+```{r}
+#| echo: true
+sum(is.na(c("M", NA, "F", NA)))
+```
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+opts <- c(
+  "TRUE",
+  "4",
+  answer = "3",
+  "Un errore: non si possono sommare valori logici"
+)
+
+cat("Cosa restituisce sum(c(TRUE, FALSE, TRUE, TRUE))?", longmcq(opts))
+```
+:::
+::::
+
+Con `!is.na()` (il punto esclamativo è la negazione) i `TRUE` e i
+`FALSE` si scambiano, e `sum()` conta invece i valori **presenti**.
+
+Per contare gli `NA` di tutte le variabili in un colpo solo c'è
+`colSums()`. Applicata a tutto il data frame, `is.na(dati)` restituisce
+una tabella di `TRUE` e `FALSE` con le stesse righe e le stesse
+variabili di `dati`. `colSums()` ("somme delle colonne") fa la somma di
+ogni variabile di questa tabella, cioè conta i `TRUE`, variabile per
+variabile: il risultato è il numero di valori mancanti di ciascuna.
+
+Prova nell'area di prova:
+
+```{r}
+#| eval: false
+sum(is.na(dati$sex))     # valori mancanti
+sum(!is.na(dati$sex))    # valori presenti
+colSums(is.na(dati))     # valori mancanti in ogni variabile
+```
+
+::: {.callout-tip appearance="default" icon="false"}
+## Approfondimento: la funzione opposta `replace_na()`
+
+`replace_na()` fa il contrario di `na_if()`: sostituisce `NA` con un
+valore a scelta, per esempio
+`mutate(sex = replace_na(sex, "Non noto"))`. È utile nelle tabelle
+finali, quando si vuole mostrare esplicitamente la categoria dei
+mancanti.
+:::
+
+## Convertire le variabili nella classe corretta
+
+### Le classi delle variabili
+
+Ogni variabile ha una **classe**, che dice a R come interpretarne i
+valori. Le più comuni sono:
+
+-   "numeric" (numeri, anche con decimali)
+-   "integer" (solo numeri interi)
+-   "character" (testo)
+-   "logical" (`TRUE`/`FALSE`)
+-   "Date" (date)
+
+La classe di una variabile si controlla con `class()`. Prova nell'area
+di prova:
+
+```{r}
+#| eval: false
+class(dati$age)
+class(dati$group)
+```
+
+`class(dati$age)` è un comando **indipendente** dalla catena: per questo
+serve l'operatore `$` per dire a R in quale data frame si trova la
+variabile. Dentro la catena `$` non serve, perché il data frame passa da
+una funzione all'altra con l'operatore pipe.
+
+Anche se ora `age` contiene solo numeri e `NA`, la variabile è ancora di
+classe `character`: all'importazione è bastato che contenesse
+`"Unknown"` e `"N/D"` perché R la leggesse come testo. E finché è testo,
+non si possono fare calcoli (media, età minima e massima, classi di
+età). `group`, invece, è di classe "integer", perché contiene solo
+numeri interi: una variabile "integer" non può contenere decimali, e se
+un calcolo dovesse produrne conviene la classe "numeric".
+
+Anche `hiv_status` dovrebbe essere numerica (`0` o `1`), ma per ora la
+lasciamo di classe `character`: contiene ancora il valore `"Yes"`, che
+va prima ricodificato. Lo faremo nel Modulo 3.
+
+### Cambiare classe
+
+Per cambiare classe ci sono le funzioni `as.numeric()`,
+`as.character()`, `as.integer()`, ecc.: basta mettere il nome della
+variabile tra le parentesi.
+
+::: {.callout-warning appearance="default" icon="false"}
+## Attenzione ai warning e agli errori
+
+Perché abbiamo trasformato `"Unknown"` e `"N/D"` in `NA` **prima** di
+convertire l'età in numero? Ecco cosa succede convertendo direttamente
+un testo che non è un numero:
+
+```{r}
+#| echo: true
+#| warning: true
+as.numeric(c("45", "N/D"))
+```
+
+R esegue il comando ma mostra un **warning** (avvertimento): ha
+introdotto un `NA` perché `"N/D"` non è un numero. Un *warning* vuol
+dire che il comando è stato eseguito ma c'è qualcosa da controllare; un
+*error* vuol dire che il comando non è stato eseguito. Un warning va
+sempre letto e capito: in questo caso il risultato sarebbe giusto, ma
+trasformando prima i valori con `na_if()` la scelta è **esplicita** e
+documentata nel codice.
+:::
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+opts <- c(
+  "Un errore, e il comando non viene eseguito",
+  answer = "Un NA, con un warning",
+  "Il numero 0"
+)
+
+cat("Cosa restituisce as.numeric(\"N/D\")?", longmcq(opts))
+```
+:::
+::::
+
+### Aggiungi alla catena di pulizia
+
+Aggiungi alla catena un `mutate()` che converta `age` in numero.
+Controlla poi il risultato con `class(dati$age)` nell'area di prova.
+
+<details>
+
+<summary style="text-decoration: underline; color: darkgreen;">
+
+`r fontawesome::fa("lightbulb", fill = "gold")` Clicca per leggere un
+suggerimento
+
+</summary>
+
+</br>
+
+Dentro `mutate()`, ridefinisci `age` come uguale a se stessa racchiusa
+nella funzione `as.numeric()`.
+
+</br>
+
+</details>
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+Aggiungi in fondo alla catena (ricorda il `%>%` alla fine della riga
+precedente):
+
+```{r}
+#| echo: true
+#| eval: false
+
+  # conversione dell'età in numero
+  mutate(age = as.numeric(age))
+```
+
+</br>
+
+</details>
+
+## Convertire le stringhe in date
+
+### Come sono scritte le date?
+
+Guarda la classe e i primi valori della data di vaccinazione nell' area
+di prova:
+
+```{r}
+#| eval: false
+class(dati$date_vacc)
+head(dati$date_vacc)
+```
+
+Le date sono state importate come testo (`character`): del resto, come
+potrebbe R sapere quali cifre indicano il giorno e quali il mese? Per
+usarle (per esempio per calcolare la durata del follow-up) devono
+diventare di classe "Date".
+
+**In che formato R vuole le date?** R mostra le date di classe "Date"
+sempre nello stesso formato: **anno-mese-giorno**, con l'anno a 4 cifre
+e i trattini (AAAA-MM-GG, per esempio `2021-06-20` per il 20 giugno
+2021). È il formato standard internazionale (ISO 8601). Il dato grezzo,
+invece, può essere scritto in molti modi diversi: per convertirlo
+bisogna dire a R in che **ordine** sono scritti giorno, mese e anno.
+
+### Le funzioni di `{lubridate}`
+
+Il pacchetto `{lubridate}` ha tre funzioni principali per convertire il
+testo in date: `ymd()`, `mdy()` e `dmy()`. Il nome indica l'**ordine**
+in cui sono scritti anno (*y*, year), mese (*m*, month) e giorno (*d*,
+day) **nel dato grezzo**. Accettano diversi separatori e anche i mesi
+scritti in lettere:
+
+```{r}
+ymd("2021-06-20")       # anno-mese-giorno
+dmy("20/06/2021")       # giorno/mese/anno
+dmy("20 giugno 2021")   # giorno mese anno, con il mese in lettere
+mdy("06/20/2021")       # mese/giorno/anno (formato americano)
+```
+
+In tutti i casi il risultato è lo stesso: una data di classe "Date",
+mostrata come AAAA-MM-GG. La cosa più importante è usare la funzione che
+corrisponde al formato **attuale** (grezzo) della data.
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+opts <- c(
+  "ymd()",
+  "mdy()",
+  answer = "dmy()"
+)
+
+cat("Quale funzione useresti per convertire \"20/06/2021\" (20 giugno 2021)?", longmcq(opts))
+```
+:::
+::::
+
+### Esploriamo la data dell'evento
+
+Inizia esplorando come è scritta la variabile data dell'evento
+(`date_event`) nell'area di prova:
+
+```{r}
+#| eval: false
+dati %>% tabyl(date_event) %>% head()
+```
+
+Le date di `date_event` sono scritte tutte come giorno/mese/anno (per
+esempio `"17/09/2021"`). Prova a convertirle con `ymd()`:
+
+```{r}
+#| eval: false
+prova <- ymd(dati$date_event)
+```
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+opts <- c(
+  "Perché date_event contiene molti NA",
+  answer = "Perché le date sono scritte come giorno/mese/anno e non come anno-mese-giorno",
+  "Perché date_event non è di classe character"
+)
+
+cat("ymd(dati$date_event) restituisce il warning \"All formats failed to parse\". Perché?", longmcq(opts))
+```
+:::
+::::
+
+La funzione giusta è quella che corrisponde all'ordine del dato grezzo,
+cioè `dmy()`. Prova nell'area di prova:
+
+```{r}
+#| eval: false
+prova <- dmy(dati$date_event)
+range(prova, na.rm = TRUE)
+```
+
+`range()` restituisce il valore più piccolo e quello più grande, qui la
+data più vecchia e quella più recente: è il modo più rapido per
+controllare che le date siano plausibili. L'argomento `na.rm = TRUE`
+("NA remove", togli gli `NA`) dice a R di ignorare i valori mancanti.
+Senza, basta un solo `NA` perché il risultato sia `NA`: R non può sapere
+quale sia il valore minimo se uno dei valori è sconosciuto.
+
+```{r}
+#| echo: true
+range(c(3, NA, 7))
+range(c(3, NA, 7), na.rm = TRUE)
+```
+
+Lo stesso argomento si usa con le altre funzioni che riassumono molti
+valori in uno, come `sum()`, `mean()`, `min()` e `max()`. Lo ritroverai
+nella verifica finale, dove controlli le età e le date con `range()`.
+
+Le date ora cadono tutte nel 2021, ma compare il warning "1 failed to
+parse": un valore **non** è stato convertito. Per capire quale, guarda
+gli ultimi valori della tabella di `date_event`:
+
+```{r}
+#| eval: false
+dati %>% tabyl(date_event) %>% tail()
+```
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+opts <- c(
+  "Perché una data è scritta in un formato diverso dalle altre",
+  "Perché le celle vuote non si possono convertire in date",
+  answer = "Perché date_event contiene il testo \"Unknown\", che non è una data"
+)
+
+cat("Perché dmy(dati$date_event) restituisce il warning \"1 failed to parse\"?", longmcq(opts))
+```
+:::
+::::
+
+Tra le date c'è un valore `"Unknown"`, che non avevamo trasformato in
+`NA` nella sezione sui valori mancanti. È lo stesso comportamento che
+hai visto con `as.numeric("N/D")`: quando un valore non si può
+convertire nella classe richiesta, R lo trasforma in `NA` e avvisa con
+un **warning**. Qui va bene così: `"Unknown"` vuol dire che la data non
+è nota, quindi deve diventare `NA`.
+
+### Esploriamo la data di fine follow-up
+
+Guarda ora invece come sono scritte le date di fine follow-up
+(`date_end_fu`):
+
+```{r}
+#| eval: false
+head(dati$date_end_fu)
+```
+
+Anche qui l'ordine è giorno/mese/anno, ma con l'anno a **due cifre**
+(per esempio `"17/09/21"`). Cosa succede se per sbaglio usi `ymd()`?
+
+```{r}
+#| eval: false
+prova <- ymd(dati$date_end_fu)
+range(prova, na.rm = TRUE)
+```
+
+Questa volta **non compare nessun warning**: R ha convertito tutte le
+date. Eppure `range()` mostra date dal 2001 al 2031, in una coorte
+seguita nel 2021! Per esempio, `ymd()` ha letto `"31/08/21"` (31 agosto
+2021) come anno 2031, mese 08, giorno 21: il comando è stato eseguito
+**senza errori** ma in modo **sbagliato**. Per questo, dopo ogni
+conversione, bisogna controllare il risultato con `range()`.
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+opts <- c(
+  "ymd()",
+  "mdy()",
+  answer = "dmy()"
+)
+
+cat("Qual è la funzione corretta per convertire date_end_fu?", longmcq(opts))
+```
+:::
+::::
+
+Verifica nell'area di prova cosa succede con `dmy()` e se le date cadono
+tutte nel 2021, come dovrebbe essere:
+
+```{r}
+#| eval: false
+prova <- dmy(dati$date_end_fu)
+range(prova, na.rm = TRUE)
+```
+
+### Esploriamo la data di vaccinazione
+
+Le prime date di `date_vacc` sono scritte come anno-mese-giorno: basta
+`ymd()`? Prova nell'area di prova a convertire tutta la variabile:
+
+```{r}
+#| eval: false
+prova <- ymd(dati$date_vacc)
+```
+
+Compare il warning "3 failed to parse": tre valori **non** sono stati
+convertiti. Per vedere quali, affianca nell'area di prova la data
+originale e il risultato di `ymd()`, usando le funzioni che già conosci:
+
+```{r}
+#| eval: false
+dati %>%
+  mutate(prova = ymd(date_vacc)) %>%
+  select(date_vacc, prova) %>%
+  View()
+```
+
+Nel Viewer clicca sull'intestazione della colonna `prova` per ordinarla:
+i valori non convertiti (`NA`) finiscono in fondo, e accanto vedi come
+erano scritti in `date_vacc`. Il comando non usa `<-`, quindi non
+modifica `dati`.
+
+Nella stessa variabile ci sono **formati diversi**: oltre alle date
+scritte come anno-mese-giorno, ci sono date scritte come
+giorno/mese/anno (`"14/05/2021"`) e con il mese in lettere
+(`"18 apr 2021"`). Nessuna delle tre funzioni `ymd()`, `dmy()` e `mdy()`
+le converte tutte.
+
+Quando in una variabile ci sono più formati si usa `parse_date_time()`,
+indicando nell'argomento `orders` tutti i formati presenti. Qui gli
+ordini sono due: anno-mese-giorno (`"Ymd"`) e giorno-mese-anno
+(`"dmY"`). La `Y` maiuscola indica l'anno a 4 cifre. Poiché
+`parse_date_time()` restituisce data **e ora** (classe "POSIXct"), va
+racchiusa in `as.Date()`:
+
+```{r}
+#| eval: false
+prova <- as.Date(parse_date_time(dati$date_vacc, orders = c("Ymd", "dmY")))
+range(prova, na.rm = TRUE)
+```
+
+Il riquadro riassume come gestire le date.
+
+::: {.callout-tip appearance="default" icon="false"}
+## Approfondimento: gestire le date in R
+
+**1. Prima guarda come sono scritte** (`head()`, `tabyl()`): R importa
+le date dei file CSV come testo (`character`).
+
+**2. Un solo formato nella variabile → una funzione di `{lubridate}`**,
+scelta in base all'**ordine** di giorno (d), mese (m) e anno (y) **nel
+dato grezzo**. Per esempio, per il 20 giugno 2021:
+
+| Dato grezzo | Funzione | Risultato |
+|----|----|----|
+| `"2021-06-20"`, `"2021/06/20"`, `"20210620"` | `ymd()` | 2021-06-20 |
+| `"20/06/2021"`, `"20062021"`, `"20 giu 2021"`, `"20/06/21"` | `dmy()` | 2021-06-20 |
+| `"06/20/2021"` (formato americano) | `mdy()` | 2021-06-20 |
+
+I separatori (`-`, `/`, spazio o nessuno) e i mesi scritti in lettere
+vengono riconosciuti in automatico.
+
+Se giorno e mese sono entrambi minori o uguali a 12 (per esempio
+`"06/02/2021"`), dal valore da solo non si capisce quale dei due viene
+prima: guarda gli altri valori della variabile (se compare
+`"27/08/2021"`, il primo numero è il giorno) oppure la documentazione
+dei dati, e nel dubbio chiedi a chi li ha prodotti.
+
+**3. Più formati nella stessa variabile → `parse_date_time()`**, con
+l'elenco dei formati presenti nell'argomento `orders`. Poiché
+restituisce data **e ora** (classe "POSIXct"), va racchiusa in
+`as.Date()`:
+
+``` r
+as.Date(parse_date_time(date_vacc, orders = c("Ymd", "dmY")))
+```
+
+**4. Attenzione all'anno a due cifre**: `ymd("08/06/21")` **non dà
+errore**, ma restituisce `2008-06-21`! Se in una variabile con più
+formati ci sono anche anni a due cifre, in `orders` si aggiunge `"dmy"`
+(con la `y` minuscola) **dopo** i formati con l'anno a 4 cifre, per
+esempio `orders = c("Ymd", "dmY", "dmy")`.
+
+**5. Controlla sempre il risultato**: `range()` delle date. Una data del
+2008 o del 2031 in una coorte del 2021 è un campanello d'allarme.
+
+**6. L'alternativa di `{base}`: `as.Date()` con i codici di formato.**
+Il formato si descrive con codici che iniziano con `%`. Gli stessi
+codici servono anche a `format()` per **scrivere** una data nel formato
+che vuoi, per esempio in un report.
+
+| Codice | Significato                | Esempio (20 giugno 2021) |
+|--------|----------------------------|--------------------------|
+| `%d`   | giorno (01–31)             | `20`                     |
+| `%m`   | mese in numero (01–12)     | `06`                     |
+| `%b`   | mese abbreviato in lettere | `giu`                    |
+| `%B`   | mese per esteso in lettere | `giugno`                 |
+| `%y`   | anno a 2 cifre             | `21`                     |
+| `%Y`   | anno a 4 cifre             | `2021`                   |
+
+``` r
+as.Date("20/06/2021", format = "%d/%m/%Y")   # 2021-06-20
+as.Date("06/20/2021", format = "%m/%d/%Y")   # 2021-06-20
+format(as.Date("2021-06-20"), "%d %B %Y")    # "20 giugno 2021"
+```
+
+`%b` e `%B` usano i nomi dei mesi nella **lingua del computer**: per le
+date con i mesi in un'altra lingua vedi il riquadro qui sotto.
+:::
+
+::: {.callout-tip appearance="default" icon="false"}
+## Approfondimento: mesi in lettere e lingua del computer
+
+Quando il mese è scritto in lettere (`"20 giu 2021"`), R deve sapere in
+che lingua sono i nomi dei mesi. Per capire in che lingua lavora il tuo
+computer, scrivi nella console:
+
+```{r}
+#| eval: false
+Sys.getlocale("LC_TIME")
+```
+
+Se il risultato inizia con `Italian`, R usa l'italiano; se inizia con
+`English`, usa l'inglese.
+
+| Lingua del computer | Date in italiano (`"20 giu 2021"`) | Date in inglese (`"20 jun 2021"`) |
+|----|----|----|
+| italiano | `dmy()` funziona | `dmy()` funziona |
+| inglese | `dmy()` restituisce `NA` | `dmy()` funziona |
+
+Le funzioni di `{lubridate}`, oltre alla lingua del computer,
+riconoscono sempre anche i mesi in inglese. Se invece il computer è in
+inglese e le date sono in italiano, bisogna indicare la lingua con
+l'argomento `locale`:
+
+```{r}
+#| eval: false
+dmy("20 giu 2021", locale = "Italian_Italy.utf8")   # su Windows
+dmy("20 giu 2021", locale = "it_IT.UTF-8")          # su Mac
+```
+
+L'argomento `locale` esiste anche in `parse_date_time()`.
+
+In alternativa puoi **cambiare la lingua** che R usa per le date, con
+`Sys.setlocale()`:
+
+```{r}
+#| eval: false
+# italiano
+Sys.setlocale("LC_TIME", "it_IT.UTF-8")         
+
+# inglese
+Sys.setlocale("LC_TIME", "English")              # su Windows
+Sys.setlocale("LC_TIME", "en_US.UTF-8")          # su Mac
+```
+
+La modifica vale solo per la sessione in corso: quando riavvii R, torna
+la lingua del computer. Se ti serve sempre, scrivi il comando all'inizio
+dello script, dopo il caricamento dei pacchetti.
+
+Con `as.Date()` e i codici `%b` e `%B` funziona **solo** la lingua del
+computer: su un PC in italiano
+`as.Date("20 jun 2021", format = "%d %b %Y")` restituisce `NA`, perché
+si aspetta `"giu"`. Un motivo in più per usare `{lubridate}`.
+:::
+
+### Aggiungi alla catena di pulizia
+
+Aggiungi alla catena un `mutate()` che converta:
+
+-   `date_event` con `dmy()`;
+-   `date_end_fu` con `dmy()`;
+-   `date_vacc` con `parse_date_time()` e `as.Date()`, usando
+    `orders = c("Ymd", "dmY")`.
+
+Poi controlla nell'area di prova che le date cadano tutte nel 2021:
+
+```{r}
+#| eval: false
+range(dati$date_vacc, na.rm = TRUE)
+range(dati$date_end_fu, na.rm = TRUE)
+range(dati$date_event, na.rm = TRUE)
+```
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+Aggiungi in fondo alla catena (ricorda il `%>%` alla fine della riga
+precedente):
+
+```{r}
+#| echo: true
+#| eval: false
+
+  # conversione delle date in classe Date
+  mutate(
+    date_event  = dmy(date_event),
+    date_end_fu = dmy(date_end_fu),
+    date_vacc   = as.Date(parse_date_time(date_vacc, orders = c("Ymd", "dmY")))
+  )
+```
+
+</br>
+
+</details>
+
+Quando esegui la catena compare il warning "1 failed to parse": è il
+valore `"Unknown"` di `date_event` che hai trovato prima, e che diventa
+`NA`, come vogliamo.
+
+::: {.callout-warning appearance="default" icon="false"}
+## Attenzione agli `NA` che non sono dati mancanti
+
+Con `sum(is.na(dati$date_event))` vedrai che `date_event` ha moltissimi
+`NA`. `date_event` è la data di diagnosi di COVID-19, **se avvenuta**:
+qui `NA` non è un dato perso, ma significa che il soggetto non ha avuto
+la diagnosi durante il follow-up. Per questo non va sostituito con
+`replace_na()`. Useremo questa informazione nel Modulo 3 per creare la
+variabile evento.
+:::
+
+## Verifica finale
+
+Crea la sezione "Verifica" (**Ctrl+Shift+R**), subito dopo la catena di
+pulizia. La catena è completa: controlla il dataset pulito eseguendo
+questi comandi e guardando i risultati.
+
+```{r}
+#| eval: false
+# Verifica ----------------------------------------------------------------
+
+# righe rimosse e classi delle variabili
+nrow(dati_raw) - nrow(dati)
+str(dati)
+
+# modalità delle variabili categoriche
+dati %>% tabyl(region)
+dati %>% tabyl(sex)
+dati %>% tabyl(age_group)
+dati %>% tabyl(hiv_status)
+
+# intervalli di età e date
+range(dati$age, na.rm = TRUE)
+range(dati$date_vacc, na.rm = TRUE)
+range(dati$date_end_fu, na.rm = TRUE)
+range(dati$date_event, na.rm = TRUE)
+
+# valori mancanti in ogni variabile
+colSums(is.na(dati))
+
+# coerenza tra punteggio e classe di Charlson
+dati %>% tabyl(chrls_index, chrls_score)
+```
+
+L'ultimo comando è un controllo di qualità: ogni punteggio di Charlson
+deve cadere in una sola classe (per esempio 2 nella classe `"1-2"`).
+
+::: {.callout-warning appearance="default" icon="false"}
+## Attenzione alle modalità ancora da ricodificare
+
+Nelle tabelle di `region`, `sex`, `age_group` e `hiv_status` noterai che
+alcune modalità sono ancora scritte in modi diversi: per esempio `"a"` e
+`"Region A"` invece di `"A"`, oppure `"f"`, `"Female"` e `"FEMALE"`
+invece di `"F"`, oppure `"Yes"` invece di `1`. Per R sono valori diversi
+e nelle tabelle finirebbero in righe diverse. Le ricodificheremo nel
+Modulo 3 con la funzione `case_when()`.
+:::
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+opts <- c(
+  "Che il dato è andato perso e va recuperato",
+  answer = "Che il soggetto non ha avuto la diagnosi di COVID-19 durante il follow-up",
+  "Che il soggetto non è stato vaccinato"
+)
+
+cat("colSums(is.na(dati)) mostra moltissimi NA in date_event. Cosa significano?", longmcq(opts))
+```
+:::
+::::
+
+## Lo script completo
+
+Ecco come dovrebbe essere la parte del tuo script relativa a questa
+esercitazione. Confrontala con la tua: i commenti e i comandi di
+esplorazione possono essere diversi, ma la catena di pulizia deve fare
+le stesse cose, nello stesso ordine. È anche il codice da copiare e
+incollare all'inizio delle prossime esercitazioni, per partire tutti
+dallo stesso punto.
+
+<details>
+
+<summary style="text-decoration: underline; color: blue;">
+
+`r fontawesome::fa("check", fill = "blue")` Clicca per vedere lo script
+completo
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+#| eval: false
+
+# Modulo 2 - Pulizia e preparazione dei dati ==============================
+
+# Pulizia dei dati --------------------------------------------------------
+dati <- dati_raw %>%
+  # pulizia automatica dei nomi delle variabili
+  clean_names() %>%
+  # pulizia manuale dei nomi delle variabili (NUOVO = VECCHIO)
+  rename(
+    id_subject  = subject_id,
+    chrls_index = charlson_index,
+    chrls_score = charlson_score,
+    date_vacc   = vaccination_date,
+    date_end_fu = end_follow_up,
+    date_event  = event_date) %>%
+  # eliminazione delle variabili non necessarie
+  select(-row_number_original, -internal_note) %>%
+  # rimozione delle righe duplicate
+  distinct() %>%
+  mutate(
+    # codici di valore mancante -> NA
+    sex        = na_if(sex, "Unknown"),
+    age        = na_if(age, "Unknown"),
+    age        = na_if(age, "N/D"),
+    age_group  = na_if(age_group, "Unknown"),
+    age_group  = na_if(age_group, "999999"),
+    hiv_status = na_if(hiv_status, "9"),
+    hiv_status = na_if(hiv_status, "99999"),
+    # celle vuote "" -> NA
+    region     = na_if(region, ""),
+    age_group  = na_if(age_group, ""),
+    hiv_status = na_if(hiv_status, ""),
+    date_event = na_if(date_event, "")
+  ) %>%
+  # conversione dell'età in numero
+  mutate(age = as.numeric(age)) %>%
+  # conversione delle date in classe Date
+  mutate(
+    date_event  = dmy(date_event),
+    date_end_fu = dmy(date_end_fu),
+    date_vacc   = as.Date(parse_date_time(date_vacc, orders = c("Ymd", "dmY")))
+  )
+
+
+# Verifica ----------------------------------------------------------------
+nrow(dati_raw) - nrow(dati)
+str(dati)
+dati %>% tabyl(region)
+dati %>% tabyl(sex)
+dati %>% tabyl(age_group)
+dati %>% tabyl(hiv_status)
+range(dati$age, na.rm = TRUE)
+range(dati$date_vacc, na.rm = TRUE)
+range(dati$date_end_fu, na.rm = TRUE)
+range(dati$date_event, na.rm = TRUE)
+colSums(is.na(dati))
+dati %>% tabyl(chrls_index, chrls_score)
+
+
+# Area di prova -----------------------------------------------------------
+# (il contenuto può variare)
+```
+
+</br>
+
+</details>
+
+Salva lo script e avvisa il docente che hai finito. Domani mattina, nel
+Modulo 3, continuerai a lavorare su questo stesso script,
+`pulizia_dati.R`. Se non hai completato l'esercizio, nella cartella
+`script/backup` trovi la versione corretta dello script,
+`backup_pulizia_dati.R`: contiene anche le soluzioni del Modulo 3,
+quindi per ora copia nel tuo script solo la parte dei Moduli 1 e 2.
+
+## Riepilogo
+
+In questo modulo hai imparato a:
+
+-   esplorare i dati con `dim()`, `names()`, `skim()`, `tabyl()` e
+    `class()` per individuarne i problemi;
+-   costruire una catena di pulizia con l'operatore pipe `%>%`;
+-   standardizzare i nomi delle variabili con `clean_names()` e
+    `rename()` (NUOVO = VECCHIO);
+-   selezionare ed eliminare variabili con `select()` e rimuovere le
+    righe duplicate con `distinct()`;
+-   trasformare in `NA` i codici di valore mancante e le celle vuote con
+    `na_if()` (con la scorciatoia `across()` per più variabili insieme)
+    e contare i mancanti con `is.na()`;
+-   convertire le variabili nella classe corretta con `as.numeric()`;
+-   convertire le stringhe in date con `{lubridate}` (`ymd()`, `dmy()`,
+    `mdy()`, `parse_date_time()`);
+-   controllare sempre il risultato (`tabyl()`, `range()`,
+    `colSums(is.na())`).
+
+## Risorse aggiuntive
+
+| Argomento | Risorsa |
+|----|----|
+| Pulizia dei dati (`clean_names()`, `select()`, `na_if()`, `across()`) | Epi R Handbook, cap. 8 "Cleaning data and core functions": <https://epirhandbook.com/en/new_pages/cleaning.html> |
+| Date con `{lubridate}` | Epi R Handbook, cap. 9 "Working with dates": <https://epirhandbook.com/en/new_pages/dates.html> |
+| Codici di formato delle date (`%d`, `%m`, `%Y`...) con `as.Date()` e `format()` | R-bloggers, "Date Formats in R": <https://www.r-bloggers.com/2013/08/date-formats-in-r/> |
+| `{lubridate}`: documentazione e cheatsheet | <https://lubridate.tidyverse.org/>; cheatsheet: <https://github.com/rstudio/cheatsheets/blob/main/lubridate.pdf> |
+| Righe duplicate | Epi R Handbook, cap. 15 "De-duplication": <https://epirhandbook.com/en/new_pages/deduplication.html> |
+
+```{=html}
+<!-- Sezione Autori in sospeso: da definire
+
+**Autori**
+
+Autori originali: Applied Epi (<https://appliedepi.org>), corso
+"Introduction to R for Applied Epidemiology", esercizio "Data cleaning"\
+Fonte dei dati: dati di una coorte vaccinale, modificati
+a scopo didattico\
+Adattato da: Chiara Sacco (Istituto Superiore di Sanità)
+-->
+```

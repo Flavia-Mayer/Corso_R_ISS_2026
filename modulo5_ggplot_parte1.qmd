@@ -1,0 +1,2484 @@
+---
+output: html_document
+editor_options: 
+  chunk_output_type: console
+execute:
+  warning: false
+  error: false
+format: 
+  html: 
+    css: webex.css
+    include-after-body: webex.js
+    df-print: kable
+    toc: true
+    toc-depth: 4
+    toc-expand: 1
+editor: 
+  markdown: 
+    wrap: 72
+title: |
+  ![](immagini/logo_dmi.png){width=3in}
+---
+
+# **Corso introduttivo al software statistico R**
+
+# Modulo 05 Data Visualization con ggplot2 (Parte 1)
+
+## Obiettivi del modulo
+
+-   Costruire un grafico con `{ggplot2}` a partire da un data frame,
+    mappando le variabili alle estetiche con `aes()`
+-   Scegliere il livello `geom_` adatto al tipo di variabili e combinare
+    più livelli nello stesso grafico
+-   Distinguere estetiche statiche e dinamiche e gestire variabili
+    numeriche usate come categorie
+-   Etichettare un grafico, suddividerlo in pannelli e mostrare le date
+    sugli assi in italiano
+-   Salvare un grafico su file con `ggsave()`
+
+## Formato dell'esercizio
+
+<!-- Il paragrafo sotto è fisso: -->
+
+Questo esercizio è progettato per essere una guida e per aiutarti a
+completarlo in autonomia. Ti consigliamo fortemente di provare a
+eseguire il codice prima di guardare le soluzioni. Per aiutarti, abbiamo
+incluso in alcuni punti dei suggerimenti che possono indirizzarti nella
+direzione giusta. Li troverai così:
+
+<!-- ISTRUZIONI: Questo blocco "Suggerimento" va inserito ogni volta che vuoi dare un aiuto parziale allo studente senza svelare subito la soluzione (es. il nome di una funzione da usare, o un argomento a cui prestare attenzione). Copia l'intero blocco <details>...</details> e modifica solo il testo dopo </br>. -->
+
+<details>
+
+<summary style="text-decoration: underline; color: darkgreen;">
+
+`r fontawesome::fa("lightbulb", fill = "gold")` Clicca per leggere un
+suggerimento
+
+</summary>
+
+</br>
+
+Questo è un suggerimento.
+
+</br>
+
+</details>
+
+Le soluzioni, invece, avranno questo aspetto:
+
+```{=html}
+<!-- ISTRUZIONI: Questo blocco "Soluzione" va inserito alla fine di ogni esercizio (o sotto-punto) e deve contenere codice R eseguibile e commentato. Copia l'intero blocco <details>...</details> e sostituisci il codice di esempio. Se la 
+     soluzione richiede più passaggi, aggiungi commenti # nel codice per spiegare ogni passaggio. Ricorda: niente etichette (label) nei chunk, come indicato nelle istruzioni generali. -->
+```
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+print("Questo è un esempio di soluzione")
+
+```
+
+</br>
+
+</details>
+
+Durante l'esercizio troverai anche domande a risposta multipla, che
+servono a verificare se stai seguendo correttamente lo svolgimento. Le
+domande saranno simili a questa:
+
+```{=html}
+<!-- ISTRUZIONI: Questo blocco "Domanda" usa il pacchetto`{webexercises}` per creare quiz a risposta multipla auto-correttivi. Copia l'intero blocco ::: {.callout-note}...::: 
+     e:
+       - scrivi le opzioni di risposta nel vettore "opts"
+       - indica la risposta corretta con answer = "..."
+       - scrivi il testo della domanda dentro cat("Domanda: ...")
+     Inserisci una domanda ogni volta che vuoi far verificare allo studente di aver capito un concetto chiave prima di proseguire. -->
+```
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+pacman::p_load(webexercises)
+
+opts <- c(
+  "2",
+  "5",
+  answer = "4"
+)
+
+
+cat("Domanda di esempio: quanto fa 2 + 2?", longmcq(opts))
+
+```
+:::
+::::
+
+Lungo il modulo troverai anche due tipi di riquadri colorati. I riquadri
+**gialli** segnalano errori frequenti o punti in cui R si comporta in
+modo inatteso: leggili sempre, perché possono farti risparmiare tempo.
+
+<!-- ISTRUZIONI: Il box giallo "Attenzione a …" va usato per avvisi importanti: errori comuni, comportamenti di R che possono sorprendere, passaggi da non saltare. Il titolo inizia sempre con "Attenzione a" (es. "Attenzione ai nomi con spazi"). Copia l'intero blocco ::: {.callout-warning ...} ... ::: e modifica solo titolo e testo. -->
+
+::: {.callout-warning appearance="default" icon="false"}
+## Attenzione a …
+
+Questo è un esempio di riquadro di attenzione.
+:::
+
+I riquadri **verdi** contengono invece approfondimenti facoltativi, per
+chi vuole andare un po' oltre: puoi saltarli senza perdere il filo
+dell'esercizio e tornarci in un secondo momento.
+
+<!-- ISTRUZIONI: Il box verde "Approfondimento: …" va usato per contenuti facoltativi: funzioni alternative, scorciatoie, casi più avanzati. Lo studente deve poter completare l'esercizio anche senza leggerlo. Il titolo inizia sempre con "Approfondimento:" (es. "Approfondimento: gestire le date in R"). Copia l'intero blocco ::: {.callout-tip ...} ... ::: e modifica solo titolo e testo. -->
+
+::: {.callout-tip appearance="default" icon="false"}
+## Approfondimento: …
+
+Questo è un esempio di riquadro di approfondimento.
+:::
+
+Ti consigliamo di provare comunque a rispondere e a eseguire il codice
+da solo prima di consultare suggerimenti e soluzioni: è così che si
+impara davvero a usare R.
+
+## Preparazione
+
+Oggi inizierai uno script nuovo, dedicato ai grafici, su cui lavorerai
+anche nel pomeriggio (Modulo 6) e domani pomeriggio (Modulo 8). Apri il
+progetto del corso, crea un nuovo script (*File -> New File -> R
+Script*) e salvalo nella cartella `script` con il nome `plot`.
+
+Come nei moduli precedenti, inizia lo script con alcuni commenti: nome e
+cognome, obiettivo dello script, email e data. Poi crea la sezione
+"Caricamento pacchetti" con la combinazione di tasti **Ctrl + Shift +
+R** (**Cmd + Shift + R** su Mac) e copiaci il comando `pacman::p_load()`
+dello script `tabelle_grouping.R`. Eseguilo.
+
+Ricordati di salvare il lavoro di tanto in tanto (**Ctrl + S**, oppure
+**Cmd + S** su Mac). Al termine dell'esercitazione non chiudere il
+progetto R: nel pomeriggio continuerai a lavorare su questo script.
+
+## Iniziamo!
+
+`r fontawesome::fa("play", fill = "darkgreen")` **Da qui comincia
+l'esercitazione.**
+
+```{r}
+#| include: false
+
+pacman::p_load(
+  tidyverse,   # ggplot2, dplyr, forcats, lubridate, ...
+  rio,         # import/export
+  webexercises
+)
+
+dati_clean <- import("dati/dati_clean.rds")
+```
+
+```{=html}
+<!-- ============================================================
+     NOTE PER IL DOCENTE (non compaiono nell'HTML)
+     - Versione allineata ai Moduli 2-4 a partire dal testo
+       originale: consegne, suggerimenti e domande sono quelli
+       originali; sono stati aggiunti le spiegazioni delle funzioni,
+       l'area di prova, i riquadri e la divisione degli esercizi
+       più lunghi.
+     - hiv (factor "Senza HIV"/"Con HIV") è creata nel Modulo 3 ed
+       è già in dati_clean.rds: qui non si ricrea.
+     - covid (factor "Senza diagnosi"/"Con diagnosi", da event) si
+       crea in questo modulo, nella sezione "Diagnosi di COVID-19"
+       dello script, con lo stesso factor() usato per hiv nel
+       Modulo 3. Serve a mostrare la differenza tra legenda continua
+       (event numerica) e discreta (covid). labs() compare lì per la
+       prima volta, solo per il titolo della legenda: si spiega nella
+       sezione successiva.
+     - I primi grafici a punti e jitter usano hiv × anticorpi; dal
+       boxplot in poi si torna a region × age.
+     - Nello script restano solo gli oggetti da tenere: covid in
+       dati_clean, i due grafici finali, vaccinati_regione,
+       scatter_anticorpi e il suo ggsave(). Tutti gli altri grafici
+       si fanno nell'area di prova.
+     - I partecipanti creano script/plot.R (Moduli 5, 6 e 8), che
+       inizia con i pacchetti e l'importazione di dati/dati_clean.rds.
+     - ggsave() salva in "output/": la cartella deve esistere nel
+       progetto distribuito.
+     - Lo scatter plot usa age e anticorpi (una persona per punto).
+       vaccinati_giorno (vaccinati ed età media per giorno) si crea
+       nel Modulo 6, dove serve per le scale continue e le date.
+       Le scale di colore (anche viridis) si introducono nel Modulo 6.
+     - I commenti "DIPENDE DAI DATI" segnalano testi o domande da
+       ricontrollare se cambia il dataset.
+     ============================================================ -->
+```
+
+## Il punto di partenza
+
+### I dati
+
+Come nel Modulo 4, usiamo i dati puliti preparati da noi. Nello script
+crea la sezione "Importazione dati" (**Ctrl+Shift+R**) e importa con
+`import()` il file `dati_clean.rds` della cartella `dati`, chiamando il
+dataset `dati_clean`.
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+#| eval: false
+
+# Importazione dati -------------------------------------------------------
+dati_clean <- import("dati/dati_clean.rds")
+```
+
+</br>
+
+</details>
+
+I dati su cui stiamo lavorando (`dati_clean`) è la coorte di persone
+vaccinate contro COVID-19 che ci accompagna in tutto il corso, con
+persone con HIV (`hiv_status` uguale a 1) e persone senza HIV
+(`hiv_status` uguale a 0). Le persone senza HIV non sono state scelte a
+caso: per ogni persona con HIV sono state scelte, di norma, **due
+persone senza HIV** con la stessa regione (`region`), lo stesso sesso
+(`sex`), la stessa classe d'età (`age_group`, 18-59 o 60+) e la
+vaccinazione nella stessa settimana. Questo procedimento si chiama
+**appaiamento**: la persona con HIV e i suoi due "controlli" hanno lo
+stesso valore della variabile `group`. Per questo nella coorte le
+persone senza HIV sono circa il doppio di quelle con HIV. Ci servirà per
+leggere alcuni grafici.
+
+### L’area di prova
+
+Anche in questo modulo userai l’“Area di prova” come fatto per i moduli precedenti. Quasi tutti i grafici di oggi sono prove, che non serve conservare. Come nei moduli precedenti, aggiungi in fondo allo script una nuova sezione, "Area di prova" (**Ctrl + Shift + R**), e fai lì gli esercizi. Nello script, sopra l'area di prova, scriverai solo gli oggetti che servono anche dopo: lo segnaleremo di volta in volta.
+
+### Il pacchetto `{ggplot2}`
+
+In questo modulo farai i grafici con il pacchetto `{ggplot2}`. Non devi
+caricarlo: fa parte del `{tidyverse}`, che hai già caricato all'inizio
+dello script.
+
+## Aprire il grafico e mappare le estetiche
+
+Con `{ggplot2}` un grafico si costruisce un pezzo alla volta, come una
+serie di strati sovrapposti. Ogni grafico comincia con la funzione
+`ggplot()`, che ha due argomenti principali:
+
+-   `data =`, il data frame da cui prendere i dati;
+-   `mapping = aes()`, dove indichi quale variabile va su ciascun
+    elemento del grafico. `aes()` sta per *aesthetics*, "estetiche":
+    l'asse x, l'asse y e, come vedremo, anche il colore o il
+    riempimento. Associare una variabile a un'estetica si dice
+    **mappare**.
+
+```{r}
+#| eval: false
+ggplot(data = DATI, mapping = aes(x = VARIABILE, y = VARIABILE))
+```
+
+Proviamo nell'area di prova: scrivi un comando `ggplot()` con i dati
+`dati_clean`, mappando la regione (`region`) sull'asse x e l'età (`age`)
+sull'asse y.
+
+<details>
+
+<summary style="text-decoration: underline; color: darkgreen;">
+
+`r fontawesome::fa("lightbulb", fill = "gold")` Clicca per leggere un
+suggerimento
+
+</summary>
+
+</br>
+
+Il mapping si scrive dentro `aes()`, assegnato all'argomento `mapping =`
+di `ggplot()`.
+
+</br>
+
+</details>
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+ggplot(data = dati_clean, mapping = aes(x = region, y = age))
+
+```
+
+</br>
+
+</details>
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+pacman::p_load(webexercises)
+
+opts <- c(
+  "Un grafico a punti con un punto per persona",
+  "Un messaggio di errore, perché manca un geom",
+  "Una tela grigia senza assi",
+  answer = "Gli assi con le loro scale, ma nessun dato"
+)
+
+
+cat("Cosa vedi nel pannello Plots?", longmcq(opts))
+
+```
+:::
+::::
+
+## Livelli geom ed estetiche statiche
+
+### Punti
+
+`ggplot()` ha preparato la "tela" con gli assi. Per disegnare i dati
+bisogna aggiungere un **livello** con una funzione che inizia con
+`geom_`: ogni funzione `geom_` disegna i dati in un modo diverso.
+`geom_point()`, per esempio, disegna un punto per ogni riga del data
+frame.
+
+```{r}
+#| eval: false
+ggplot(data = DATI, mapping = aes(x = VARIABILE, y = VARIABILE)) +
+  geom_point()
+```
+
+In `dati_clean` c'è anche il livello di anticorpi di ciascuna persona
+dopo la vaccinazione (`anticorpi`). Nell'area di prova, scrivi un nuovo
+comando `ggplot()` con lo stato HIV (`hiv`) sull'asse x e il livello di
+anticorpi (`anticorpi`) sull'asse y, e aggiungi un livello
+`geom_point()`. Il simbolo `+` serve a collegare più strati (*layers*)
+del grafico: ogni strato si aggiunge sopra il precedente.
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+ggplot(data = dati_clean, mapping = aes(x = hiv, y = anticorpi)) +
+  geom_point()
+
+```
+
+</br>
+
+</details>
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+pacman::p_load(webexercises)
+
+opts <- c(
+  "Perché ggplot mostra solo un campione delle righe",
+  answer = "Perché i punti di ciascun gruppo sono tutti sulla stessa linea verticale e si sovrappongono",
+  "Perché mancano le etichette degli assi",
+  "Perché i livelli di anticorpi sono stati arrotondati da ggplot"
+)
+
+
+cat("Perché da questo grafico è difficile capire quante persone ci sono in ciascun gruppo?", longmcq(opts))
+
+```
+:::
+::::
+
+### Dove va il `+`
+
+Il `+` va scritto alla **fine** della riga, non all'inizio di quella
+successiva. Prova a spostarlo all'inizio della seconda riga ed esegui le
+due righe.
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+#| eval: false
+
+# sbagliato: il + è all'inizio della seconda riga
+ggplot(data = dati_clean, mapping = aes(x = hiv, y = anticorpi))
+  + geom_point()
+
+```
+
+::: {.callout-warning appearance="default" icon="false"}
+## Attenzione a usare `+` da solo
+
+R esegue la prima riga come un comando completo e disegna la tela vuota.
+Poi prova a eseguire `+ geom_point()` da solo e si ferma con l'errore
+*Cannot use `+` with a single argument. Did you accidentally put `+` on
+a new line?*
+:::
+
+</br>
+
+</details>
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+pacman::p_load(webexercises)
+
+opts <- c(
+  "R aggiunge comunque i punti, perché il + collega le due righe",
+  "R ignora la seconda riga senza dare messaggi",
+  answer = "R disegna solo la tela vuota e poi dà un errore sulla seconda riga",
+  "R dà un errore sulla prima riga e non disegna nulla"
+)
+
+
+cat("Cosa succede se il + è all'inizio della seconda riga?", longmcq(opts))
+
+```
+:::
+::::
+
+### Jitter
+
+Nel grafico con `geom_point()` molti punti sono uno sopra l'altro:
+sull'asse x ci sono solo due gruppi ("Senza HIV" e "Con HIV"), quindi
+tutte le persone di un gruppo finiscono sulla stessa linea verticale, e
+quelle con livelli di anticorpi simili si coprono a vicenda.
+`geom_jitter()` disegna gli stessi punti, ma sposta ciascuno di poco, a
+caso, così che non si coprano a vicenda.
+
+Nell'area di prova, sostituisci `geom_point()` con `geom_jitter()`. Poi
+apri l'help (`?geom_jitter`) e leggi le sezioni *Description* e
+*Aesthetics*.
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+ggplot(data = dati_clean, mapping = aes(x = hiv, y = anticorpi)) +
+  geom_jitter()
+
+```
+
+</br>
+
+</details>
+
+Nella sezione *Aesthetics* hai visto che i punti hanno anche un colore
+(`color`), una dimensione (`size`) e una forma (`shape`). Se vuoi che
+**tutti** i punti abbiano lo stesso colore o la stessa dimensione,
+scrivi l'argomento dentro la funzione `geom_` con un valore fisso:
+queste si chiamano **estetiche statiche**. Con `geom_jitter()` puoi
+anche decidere di quanto spostare i punti in orizzontale, con
+l'argomento `width`.
+
+Ora, nell'area di prova, dentro `geom_jitter()`, prova uno alla volta questi argomenti:
+`width = 0.2`, `color = "darkred"`, `size = 3`, `shape = 4`.
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+ggplot(data = dati_clean, mapping = aes(x = hiv, y = anticorpi)) +
+  geom_jitter(width = 0.2, color = "darkred", size = 3, shape = 4)
+
+```
+
+</br>
+
+</details>
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+pacman::p_load(webexercises)
+
+opts <- c(
+  "Perché aes() accetta solo x e y",
+  answer = "Perché è un valore fisso, uguale per tutti i punti",
+  "Perché i colori devono sempre essere scritti nel geom",
+  "È indifferente: il risultato è lo stesso"
+)
+
+
+cat("Perché color = 'darkred' si scrive dentro geom_jitter() e non dentro aes()?", longmcq(opts))
+
+```
+:::
+::::
+
+## Boxplot
+
+Per confrontare una variabile continua tra gruppi, come l'età tra le
+regioni, si usa spesso `geom_boxplot()`, che per ogni gruppo disegna una
+"scatola": la linea centrale è la mediana, i bordi della scatola sono il
+primo e il terzo quartile, le linee che escono dalla scatola (i "baffi")
+arrivano fino ai valori più estremi che non distano più di 1,5 volte
+l'altezza della scatola, e i punti isolati oltre i baffi sono i valori
+anomali (*outlier*).
+
+Torna ora al grafico dell'età per regione, quello con cui hai aperto la
+tela all'inizio del modulo (`x = region`, `y = age`). Nell'area di
+prova, riscrivi quel comando `ggplot()` e aggiungi un livello
+`geom_boxplot()`.
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+ggplot(data = dati_clean, mapping = aes(x = region, y = age)) +
+  geom_boxplot()
+
+```
+
+</br>
+
+</details>
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+pacman::p_load(webexercises)
+
+opts <- c(
+  "La media dell'età nella regione",
+  answer = "La mediana dell'età nella regione",
+  "L'età più frequente nella regione",
+  "Il punto medio tra l'età minima e quella massima"
+)
+
+
+cat("Che cosa rappresenta la linea al centro di ogni scatola?", longmcq(opts))
+
+```
+:::
+::::
+
+## Estetiche dinamiche
+
+### Riempimento per regione
+
+Il riempimento delle forme che hanno un'area (boxplot, barre,
+istogrammi) si regola con l'estetica `fill`. Finora hai dato alle
+estetiche un valore fisso. Puoi anche farle **dipendere** da una
+variabile, per esempio dare ai boxplot un riempimento diverso per ogni
+regione: queste si chiamano **estetiche dinamiche** e, come `x` e `y`,
+si scrivono dentro `aes()`. `{ggplot2}` sceglie da solo un colore per
+ogni valore e aggiunge la legenda.
+
+Nell'area di prova, rifai il boxplot riempiendo tutte le scatole di
+`"steelblue"`.
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+ggplot(data = dati_clean, mapping = aes(x = region, y = age)) +
+  geom_boxplot(fill = "steelblue")
+
+```
+
+</br>
+
+</details>
+
+Poi modifica il comando in modo che il riempimento dei boxplot vari
+**per regione**.
+
+<details>
+
+<summary style="text-decoration: underline; color: darkgreen;">
+
+`r fontawesome::fa("lightbulb", fill = "gold")` Clicca per leggere un
+suggerimento
+
+</summary>
+
+</br>
+
+Un'estetica che dipende da una variabile va scritta dentro `aes()`, con
+il nome della variabile senza virgolette.
+
+</br>
+
+</details>
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+ggplot(data = dati_clean, mapping = aes(x = region, y = age, fill = region)) +
+  geom_boxplot()
+
+```
+
+</br>
+
+</details>
+
+<!-- DIPENDE DAI DATI: in dati_clean region non ha NA -->
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+pacman::p_load(webexercises)
+
+opts <- c(
+  "Perché ggplot elimina sempre le righe con valori mancanti",
+  "Perché geom_boxplot() non accetta valori mancanti",
+  answer = "Perché in dati_clean tutte le persone hanno la regione indicata",
+  "Perché fill = region nasconde la categoria NA"
+)
+
+
+cat("Nel grafico compaiono solo le regioni A, B, C e D, senza una categoria NA. Perché?", longmcq(opts))
+
+```
+:::
+::::
+
+### Fill e color
+ 
+::: {.callout-warning appearance="default" icon="false"}
+## Attenzione alla differenza tra due estetiche:
+
+-   `fill` è il **riempimento** delle forme con un'area, come l'interno
+    dei boxplot;
+-   `color` è il **colore** dei punti e delle linee, compresi i bordi
+    dei boxplot.
+:::
+
+Nell'area di prova, nel grafico precedente sostituisci `fill = region`
+con `color = region` e confronta i due grafici.
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+ggplot(data = dati_clean, mapping = aes(x = region, y = age, color = region)) +
+  geom_boxplot()
+
+```
+
+</br>
+
+</details>
+
+Lo spessore delle linee si regola con l'argomento `linewidth`. Rendi più
+spessi i bordi dei boxplot con `linewidth = 1.2`.
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+ggplot(data = dati_clean, mapping = aes(x = region, y = age, color = region)) +
+  geom_boxplot(linewidth = 1.2)
+
+```
+
+</br>
+
+</details>
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+pacman::p_load(webexercises)
+
+opts <- c(
+  answer = "color",
+  "fill",
+  "alpha",
+  "shape"
+)
+
+
+cat("Anche i bordi dei boxplot sono diventati colorati. In un boxplot, quale estetica controlla il bordo?", longmcq(opts))
+
+```
+:::
+::::
+
+### Una variabile codificata come numero
+
+La variabile `event` vale 1 per le persone che hanno avuto una diagnosi
+di COVID-19 durante il follow-up e 0 per le altre. Nell'area di prova,
+rifai il grafico dello stato HIV (`hiv`) e del livello di anticorpi
+(`anticorpi`) con `geom_jitter(width = 0.2)` e colora i punti in base a
+`event`.
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+# IN AREA DI PROVA
+ggplot(data = dati_clean, mapping = aes(x = hiv, y = anticorpi, color = event)) +
+  geom_jitter(width = 0.2)
+
+```
+
+</br>
+
+</details>
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+pacman::p_load(webexercises)
+
+opts <- c(
+  "Perché color accetta solo scale continue",
+  "Perché alcuni valori di event sono mancanti",
+  "Perché geom_jitter() modifica i valori di event",
+  answer = "Perché event è una variabile numerica"
+)
+
+
+cat("Perché la legenda mostra una scala continua, con valori come 0.25 e 0.75?", longmcq(opts))
+
+```
+:::
+::::
+
+Per far capire a R che `event` indica due categorie serve un
+**fattore**. `event` indica la diagnosi di COVID-19 (`date_event` è la
+data della diagnosi): puoi procedere come nel Modulo 3 per `hiv`, creata
+da `hiv_status` con `factor()`, i livelli 0 e 1 e le etichette "Senza
+HIV" e "Con HIV".
+
+Questa variabile servirà anche dopo, quindi va **nello script**: sopra
+l'area di prova, crea una nuova sezione (**Ctrl + Shift + R**) chiamata
+"Diagnosi di COVID-19" e lì aggiungi a `dati_clean`, con `mutate()`, la
+variabile `covid`: un fattore costruito da `event`, con i livelli 0 e 1
+e le etichette "Senza diagnosi" e "Con diagnosi".
+
+<details>
+
+<summary style="text-decoration: underline; color: darkgreen;">
+
+`r fontawesome::fa("lightbulb", fill = "gold")` Clicca per leggere un
+suggerimento
+
+</summary>
+
+</br>
+
+Ricorda la sintassi di `factor()` vista nel Modulo 3:
+`factor(VARIABILE, levels = c(VALORE_1, VALORE_2), labels = c("ETICHETTA_1", "ETICHETTA_2"))`.
+Per modificare `dati_clean` devi salvare il risultato di `mutate()` con
+l'operatore di assegnazione `<-`.
+
+</br>
+
+</details>
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+# NELLO SCRIPT
+# Diagnosi di COVID-19 -----------------------------------------------------
+dati_clean <- dati_clean %>%
+  mutate(covid = factor(event,
+                        levels = c(0, 1),
+                        labels = c("Senza diagnosi", "Con diagnosi")))
+
+```
+
+</br>
+
+</details>
+
+<!-- DIPENDE DAI DATI: event non ha NA (37.813 persone con 0, 9.904 con 1), quindi covid ha solo i due livelli e nessun NA in legenda -->
+
+Ora, nell'area di prova, rifai il grafico usando `covid` per il colore.
+La legenda ora ha due categorie con due colori distinti. Per darle un
+titolo più chiaro aggiungi un livello `labs(color = "Diagnosi di
+COVID-19")`: `labs()` cambia le etichette del grafico e lo vedrai meglio
+nella prossima sezione.
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+# IN AREA DI PROVA
+ggplot(data = dati_clean, mapping = aes(x = hiv, y = anticorpi, color = covid)) +
+  geom_jitter(width = 0.2) +
+  labs(color = "Diagnosi di COVID-19")
+
+```
+
+</br>
+
+</details>
+
+## Etichette e stile del codice
+
+Per rendere un grafico leggibile da altri servono un titolo e nomi
+chiari per assi e legende. Si aggiungono con un livello `labs()`, che ha
+un argomento per ogni testo: `title =` e `subtitle =` (titolo e
+sottotitolo), `x =` e `y =` (i nomi degli assi), `caption =` (la
+didascalia in basso a destra) e il nome di un'estetica, per esempio
+`fill =`, per il titolo della sua legenda.
+
+Quando il comando diventa lungo conviene scriverlo in formato "lungo":
+un argomento per riga, rientrato, con un commento a destra che spiega
+che cosa fa. R lo esegue allo stesso modo, ma chi lo legge lo capisce
+molto meglio.
+
+Questo è il grafico finale sull'età per regione, quindi va **nello
+script**: sopra l'area di prova, crea una nuova sezione (**Ctrl + Shift + R**) chiamata "Età per regione". Lì riscrivi il boxplot con `fill = region` e aggiungi `labs()` con titolo, sottotitolo, etichette degli assi x e y, didascalia (`caption`) e titolo della legenda (`fill`). Scrivi il codice in formato "lungo", un argomento per riga, con commenti.
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+# Età per regione ----------------------------------------------------------
+ggplot(
+  data = dati_clean,                        # coorte di vaccinati
+  mapping = aes(
+    x = region,                             # regione sull'asse x
+    y = age,                                # età sull'asse y
+    fill = region)) +                       # riempimento per regione
+  geom_boxplot() +                          # un boxplot per regione
+  labs(
+    title = "Età alla vaccinazione per regione",
+    subtitle = "Persone con e senza HIV",
+    x = "Regione",
+    y = "Età (anni)",
+    caption = "Grafico modulo 5",
+    fill = "Regione")
+
+```
+
+</br>
+
+</details>
+
+## Scatter plot
+
+### Età e anticorpi
+
+Uno scatter plot (grafico a dispersione) mostra la relazione tra **due variabili continue**: ogni riga del data frame è un punto, con una variabile sull'asse x e una sull'asse y. In `dati_clean` ogni riga è una persona, quindi ogni punto sarà una persona.
+
+In `dati_clean` c'è il livello di anticorpi di ciascuna persona dopo la vaccinazione (`anticorpi`). Vogliamo vedere se cambia con l'età. Nell'area di prova, fai uno scatter plot di `dati_clean` con `geom_point()`, con l'età (`age`) sull'asse x e il livello di anticorpi (`anticorpi`) sull'asse y.
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+#Chiedi prima di fare filter per dati region == 'A' & hiv == 'Con HIV'
+ggplot(data = dati_clean %>% filter(region == 'A' & hiv == 'Con HIV'), mapping = aes(x = cd4, y = anticorpi)) +
+  # scale_y_log10() + -> metti approfodnimento su scala log
+  geom_point()
+
+```
+
+</br>
+
+</details>
+
+<!-- DIPENDE DAI DATI: age mancante per 5 persone (warning "Removed 5 rows") -->
+
+Nella Console compare un avviso: le 5 persone senza età non possono essere disegnate. Il grafico viene prodotto lo stesso; ne riparleremo con gli istogrammi.
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+pacman::p_load(webexercises)
+
+opts <- c(
+  answer = "Una persona vaccinata",
+  "Un giorno della campagna vaccinale",
+  "Una classe d'età",
+  "Una regione"
+)
+
+
+cat("Che cosa rappresenta ogni punto di questo grafico?", longmcq(opts))
+
+```
+:::
+::::
+
+### Sovrapporre più geom
+
+Un grafico può avere più livelli `geom_`, collegati con `+`: `{ggplot2}` li disegna uno sopra l'altro, **nell'ordine in cui li scrivi**. Con tanti punti è difficile vedere una tendenza: il livello `geom_smooth()` aggiunge una curva che segue l'andamento medio dei punti, con una fascia grigia che ne indica l'incertezza.
+
+Nell'area di prova, colora i punti per stato HIV, con `color = hiv` dentro `aes()`, e aggiungi un livello `geom_smooth()`.
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+ggplot(data = dati_clean %>% filter(region == 'A' & hiv == 'Con HIV'), mapping = aes(x = cd4, y = anticorpi, color = hiv)) +
+  geom_point() +
+  geom_smooth()
+
+```
+
+</br>
+
+</details>
+
+Nella Console, oltre all'avviso sulle età mancanti, compare un messaggio che dice quale metodo è stato usato per calcolare la curva: è solo un'informazione, non un errore.
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+pacman::p_load(webexercises)
+
+opts <- c(
+  "Il livello di anticorpi aumenta con l'età, in entrambi i gruppi",
+  answer = "Il livello di anticorpi diminuisce con l'età, ed è più basso nelle persone con HIV",
+  "Il livello di anticorpi non cambia con l'età",
+  "Il livello di anticorpi diminuisce con l'età solo nelle persone con HIV"
+)
+
+
+cat("Che cosa mostrano le curve?", longmcq(opts))
+
+```
+:::
+::::
+
+::: {.callout-warning appearance="default" icon="false"}
+## Attenzione alle estetiche
+
+Le curve sono **due**, una per gruppo, anche se non l'hai chiesto a `geom_smooth()`. Il motivo è che le estetiche scritte dentro `ggplot()` valgono per **tutti** i livelli: anche `geom_smooth()` riceve `color = hiv`, e disegna una curva per ogni colore. Se un'estetica serve solo a un livello, va scritta dentro quel livello, con `mapping = aes()`:
+
+```{r}
+#| eval: false
+
+geom_point(mapping = aes(color = VARIABILE))
+```
+:::
+
+Nell'area di prova, sposta `color = hiv` da `ggplot()` a `geom_point()` e osserva che cosa cambia.
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+ggplot(data = dati_clean %>% filter(region == 'A' & hiv == 'Con HIV'), mapping = aes(x = cd4, y = anticorpi)) +
+  geom_point() +
+  geom_smooth()
+
+```
+
+</br>
+
+</details>
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+pacman::p_load(webexercises)
+
+opts <- c(
+  "Due, perché i punti hanno ancora due colori",
+  answer = "Una, perché geom_smooth() non riceve più il colore e calcola la tendenza su tutte le persone insieme",
+  "Nessuna, perché geom_smooth() ha bisogno di un colore",
+  "Una, perché geom_smooth() usa solo le persone con HIV"
+)
+
+
+cat("Dopo aver spostato color = hiv dentro geom_point(), quante curve vedi, e perché?", longmcq(opts))
+
+```
+:::
+::::
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+pacman::p_load(webexercises)
+
+opts <- c(
+  "Il grafico dà errore, perché geom_point() deve essere sempre il primo livello",
+  "Il grafico è identico, perché l'ordine dei livelli non conta",
+  answer = "I punti vengono disegnati sopra la curva e possono coprirla",
+  "La curva viene calcolata senza i punti"
+)
+
+
+cat("Che cosa succede se scrivi geom_smooth() prima di geom_point()?", longmcq(opts))
+
+```
+:::
+::::
+
+### Trasparenza: `alpha`
+
+I punti sono quasi 48.000 e si sovrappongono: dove sono tanti diventano una macchia uniforme, e non si capisce dove sono più fitti. L'argomento `alpha` regola la **trasparenza**, da 0 (del tutto trasparente, cioè invisibile) a 1 (del tutto coprente, il default per i punti). Funziona con quasi tutte le funzioni `geom_`. In `geom_point()` rende trasparenti i punti: dove se ne sovrappongono tanti il colore diventa più intenso. In `geom_smooth()` rende più o meno trasparente la fascia grigia di incertezza, non la curva.
+
+Nell'area di prova, riparti dal grafico con `color = hiv` dentro `ggplot()` (due curve) e aggiungi `alpha = 0.1` dentro `geom_point()`, provando anche altri valori tra 0 e 1.
+
+<details>
+
+<summary style="text-decoration: underline; color: darkgreen;">
+
+`r fontawesome::fa("lightbulb", fill = "gold")` Clicca per leggere un suggerimento
+
+</summary>
+
+</br>
+
+`alpha` qui è un'estetica **statica**: un valore fisso, uguale per tutti i punti. Va quindi scritto dentro `geom_point()` ma fuori da `aes()`.
+
+</br>
+
+</details>
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+ggplot(data = dati_clean, mapping = aes(x = age, y = anticorpi, color = hiv)) +
+  geom_point(alpha = 0.1) +
+  geom_smooth()
+
+```
+
+</br>
+
+</details>
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+pacman::p_load(webexercises)
+
+opts <- c(
+  "Dentro aes() in ggplot()",
+  "Dentro aes() in geom_point()",
+  answer = "Dentro geom_point(), fuori da aes()",
+  "Dentro geom_smooth()"
+)
+
+
+cat("Dove va scritto alpha = 0.1 per rendere semitrasparenti tutti i punti?", longmcq(opts))
+
+```
+:::
+::::
+
+## Grafici a barre
+
+### Barre semplici
+
+`geom_bar()` disegna un grafico a barre **contando le righe**: per ogni
+valore della variabile sull'asse x, l'altezza della barra è il numero di
+righe con quel valore. Per questo basta indicare solo `x`: l'asse y lo
+calcola `geom_bar()`. In `dati_clean` ogni riga è una persona vaccinata,
+quindi contare le righe di una regione vuol dire contare i suoi
+vaccinati.
+
+Nell'area di prova, fai un grafico a barre del numero di vaccinati per
+regione con `geom_bar()`, specificando solo `x`. Poi colora tutte le
+barre di `"lightblue"`.
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+ggplot(data = dati_clean, mapping = aes(x = region)) +
+  geom_bar()
+
+ggplot(data = dati_clean, mapping = aes(x = region)) +
+  geom_bar(fill = "lightblue")
+
+```
+
+</br>
+
+</details>
+
+### Barre impilate
+
+Se il riempimento dipende da una seconda variabile, ogni barra viene
+divisa in pezzi, uno per ogni valore di quella variabile, impilati uno
+sopra l'altro.
+
+Nell'area di prova, fai variare il riempimento delle barre in base al
+Charlson index (`chrls_index`).
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+ggplot(data = dati_clean, mapping = aes(x = region, fill = chrls_index)) +
+  geom_bar()
+
+```
+
+</br>
+
+</details>
+
+La categoria "0" finisce in cima alla pila: per averla in basso bisogna
+invertire l'ordine delle categorie. Lo fa la funzione `fct_rev()` del
+pacchetto `{forcats}`, anche questo compreso nel `{tidyverse}`: si
+scrive `fct_rev(VARIABILE)` al posto del solo nome della variabile.
+
+Inverti l'ordine delle categorie in modo che la categoria "0" sia in
+basso.
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+ggplot(data = dati_clean, mapping = aes(x = region, fill = fct_rev(chrls_index))) +
+  geom_bar()
+
+```
+
+</br>
+
+</details>
+
+Ora fai variare il riempimento delle barre in base alla classe d'età
+(`age_group`).
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+ggplot(data = dati_clean, mapping = aes(x = region, fill = age_group)) +
+  geom_bar()
+
+```
+
+</br>
+
+</details>
+
+### Barre affiancate
+
+Con le barre impilate è facile confrontare il totale delle regioni, ma è
+difficile confrontare tra le regioni i singoli pezzi, perché non partono
+tutti da zero. In questo caso si possono mettere i pezzi uno accanto
+all'altro invece che uno sopra l'altro.
+
+Questo è il grafico finale sui vaccinati per classe d'età, quindi va
+**nello script**: sopra l'area di prova, crea una nuova sezione (**Ctrl + Shift + R**) chiamata "Vaccinati per regione e classe d'età" e lì rifai il grafico per `age_group` con le barre affiancate.
+
+<details>
+
+<summary style="text-decoration: underline; color: darkgreen;">
+
+`r fontawesome::fa("lightbulb", fill = "gold")` Clicca per leggere un
+suggerimento
+
+</summary>
+
+</br>
+
+Per affiancare le barre usa l'argomento `position = "dodge"` dentro
+`geom_bar()`.
+
+</br>
+
+</details>
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+# Vaccinati per regione e classe d'età -------------------------------------
+ggplot(data = dati_clean, mapping = aes(x = region, fill = age_group)) +
+  geom_bar(position = "dodge")
+
+```
+
+</br>
+
+</details>
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+pacman::p_load(webexercises)
+
+opts <- c(
+  "Le barre impilate",
+  answer = "Le barre affiancate",
+  "Sono equivalenti",
+  "Nessuno dei due: serve un boxplot"
+)
+
+
+cat("Quale grafico è più adatto a confrontare il numero di persone con 60 anni o più tra le regioni?", longmcq(opts))
+
+```
+:::
+::::
+
+## Dati aggregati e `geom_col()`
+
+Spesso i dati da rappresentare sono già aggregati, per esempio in una
+tabella con il numero di vaccinati per regione. Questo data frame
+servirà anche dopo, quindi va **nello script**: sopra l'area di prova,
+crea una nuova sezione (**Ctrl + Shift + R**) chiamata "Dati aggregati" e lì crea il data frame `vaccinati_regione` con il numero di vaccinati per regione (variabile `n_vaccinati`), usando `group_by()` e `summarise()`.
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+# Dati aggregati -----------------------------------------------------------
+vaccinati_regione <- dati_clean %>%
+  group_by(region) %>%
+  summarise(n_vaccinati = n(), .groups = "drop")
+
+```
+
+</br>
+
+</details>
+
+Nell'area di prova, prova prima `geom_bar()` su `vaccinati_regione` con
+`x = region`.
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+ggplot(data = vaccinati_regione, mapping = aes(x = region)) +
+  geom_bar()
+
+```
+
+</br>
+
+</details>
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+pacman::p_load(webexercises)
+
+opts <- c(
+  "Perché n_vaccinati non è numerica",
+  "Perché geom_bar() mostra proporzioni e non conteggi",
+  answer = "Perché conta le righe, e c'è una sola riga per regione",
+  "Perché manca l'argomento fill"
+)
+
+
+cat("Perché geom_bar() su vaccinati_regione produce barre tutte alte 1?", longmcq(opts))
+
+```
+:::
+::::
+
+::: {.callout-warning appearance="default" icon="false"}
+## Attenzione a `geom_bar()` con dati già aggregati
+
+`geom_bar()` conta sempre le righe: se i dati sono già aggregati, cioè
+con una sola riga per gruppo, ogni barra è alta 1. Per disegnare valori
+già calcolati si usa `geom_col()`, che vuole sia `x` sia `y`: l'altezza
+della barra è il valore della variabile sull'asse y.
+
+```{r}
+#| eval: false
+ggplot(data = DATI, mapping = aes(x = VARIABILE, y = VALORE)) +
+  geom_col()
+```
+:::
+
+Ora fai il grafico corretto con `geom_col()` da inserire sopra l'area di prova, nella sezione “Dati aggregati”.
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+ggplot(data = vaccinati_regione, mapping = aes(x = region, y = n_vaccinati)) +
+  geom_col()
+
+```
+
+</br>
+
+</details>
+
+::: {.callout-tip appearance="default" icon="false"}
+## Approfondimento: `geom_bar(stat = "identity")`
+
+Lo stesso grafico si può ottenere anche con `geom_bar()`, aggiungendo
+l'argomento `stat = "identity"`: dice a `geom_bar()` di non contare le
+righe ma di usare i valori della variabile `y`. Per questo, anche qui,
+va inserito `y = n_vaccinati`.
+
+```{r}
+#| eval: false
+ggplot(data = vaccinati_regione, mapping = aes(x = region, y = n_vaccinati)) +
+  geom_bar(stat = "identity")
+```
+:::
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+pacman::p_load(webexercises)
+
+opts <- c(
+  "Sì, aggiungendo fill = age_group dentro aes() di ggplot()",
+  answer = "No, perché aggregando per regione l'informazione sull'età è andata persa",
+  "Sì, ma solo usando position = 'dodge' dentro geom_col()",
+  "No, perché geom_col() non accetta l'estetica fill in nessun caso"
+)
+
+
+cat("Con vaccinati_regione puoi colorare le barre per age_group?", longmcq(opts))
+
+```
+:::
+::::
+
+## Istogrammi
+
+### Istogramma di una data
+
+L'istogramma mostra la **distribuzione** di una variabile continua, come
+un'età o una data: divide i valori in intervalli e per ogni intervallo
+disegna una barra alta quanto il numero di righe che vi cadono. A
+differenza del grafico a barre, le barre sono attaccate, perché gli
+intervalli sono uno di seguito all'altro. Si fa con `geom_histogram()`,
+indicando solo `x`.
+
+Nell'area di prova, fai un istogramma della data di vaccinazione
+(`date_vacc`) con le barre di colore `"darkgreen"`.
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+ggplot(data = dati_clean, mapping = aes(x = date_vacc)) +
+  geom_histogram(fill = "darkgreen")
+
+```
+
+</br>
+
+</details>
+
+Poi ripeti con la data dell'evento (`date_event`).
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+ggplot(data = dati_clean, mapping = aes(x = date_event)) +
+  geom_histogram(fill = "darkgreen")
+
+```
+
+</br>
+
+</details>
+
+<!-- DIPENDE DAI DATI: date_event mancante per 37.813 persone (warning "Removed ... rows") -->
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+pacman::p_load(webexercises)
+
+opts <- c(
+  "Un errore: il grafico non è stato prodotto",
+  answer = "Un warning: il grafico è stato prodotto, ma sono state escluse le righe senza evento",
+  "Un warning: il grafico è vuoto perché le date non sono valide",
+  "Un messaggio informativo senza conseguenze sui dati"
+)
+
+
+cat("Il messaggio che compare dopo l'istogramma di date_event è:", longmcq(opts))
+
+```
+:::
+::::
+
+::: {.callout-warning appearance="default" icon="false"}
+## Attenzione ai messaggi in rosso: warning o errore?
+
+Non tutti i messaggi in rosso nella Console sono errori. Un **errore**
+(*Error*) blocca il comando: il grafico non viene prodotto. Un
+**warning** (*Warning*) invece è un avviso: il grafico viene prodotto,
+ma R ti segnala qualcosa a cui fare attenzione, come qui le righe
+escluse perché `date_event` è mancante. Leggi sempre il messaggio per
+capire di quale dei due si tratta.
+:::
+
+### Bins e binwidth
+
+Nell'area di prova, fai un istogramma dell'età (`age`) con riempimento
+per sesso (`sex`).
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+ggplot(data = dati_clean, mapping = aes(x = age, fill = sex)) +
+  geom_histogram()
+
+```
+
+</br>
+
+</details>
+
+<!-- DIPENDE DAI DATI: sex mancante per 2 persone, age per 5 -->
+
+In legenda, oltre a `F` e `M`, compare `NA`: sono le 2 persone con il sesso mancante, che `{ggplot2}` disegna in grigio (le loro barre sono così basse da non vedersi). Nel Modulo 6 vedrai come sceglierne il colore.
+
+Di default `geom_histogram()` divide i valori in 30 intervalli e nella
+Console ti suggerisce di sceglierne un numero migliore. Lo puoi fare in
+due modi, dentro `geom_histogram()`:
+
+-   `bins =` indica **quante** barre disegnare;
+-   `binwidth =` indica **quanto è largo** ogni intervallo, nell'unità
+    della variabile (per l'età, in anni).
+
+Prova, uno alla volta, `bins = 100`, `bins = 5` e `binwidth = 5` dentro
+`geom_histogram()`.
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+# bins = 100
+ggplot(data = dati_clean, mapping = aes(x = age, fill = sex)) +
+  geom_histogram(bins = 100)
+
+# bins = 5
+ggplot(data = dati_clean, mapping = aes(x = age, fill = sex)) +
+  geom_histogram(bins = 5)
+
+# binwidth = 5
+ggplot(data = dati_clean, mapping = aes(x = age, fill = sex)) +
+  geom_histogram(binwidth = 5)
+
+```
+
+</br>
+
+</details>
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+pacman::p_load(webexercises)
+
+opts <- c(
+  "5 persone",
+  "Il 5% dei vaccinati",
+  "Una delle 5 barre dell'istogramma",
+  answer = "Un intervallo di 5 anni di età"
+)
+
+
+cat("Con binwidth = 5 cosa rappresenta ogni barra?", longmcq(opts))
+
+```
+:::
+::::
+
+### Date in italiano
+
+Le etichette di un asse con le date si regolano con un livello
+`scale_x_date()`, che ha due argomenti utili:
+
+-   `date_breaks =` indica ogni quanto mettere un'etichetta, per esempio
+    `"1 month"` (una al mese) o `"2 weeks"`;
+-   `labels =` indica come scriverle. La funzione `scales::label_date()`
+    prende un formato e una lingua (`locale =`, per esempio `"it"` per
+    l'italiano).
+
+Il formato si scrive con dei codici: `%d` è il giorno, `%m` il mese in
+numero, `%b` il mese abbreviato ("gen"), `%B` il mese per esteso
+("gennaio") e `%Y` l'anno a quattro cifre.
+
+```{r}
+#| eval: false
+scale_x_date(
+  date_breaks = "1 month",
+  labels = scales::label_date("FORMATO", locale = "it"))
+```
+
+Sopra l'area di prova crea una nuova sezione (**Ctrl + Shift + R**) chiamata "Istogramma" e rifai l'istogramma di `date_vacc` con barre di 7
+giorni (`binwidth = 7`) ed etichette dell'asse x in italiano, una per
+mese, nel formato "gen 2021".
+
+<details>
+
+<summary style="text-decoration: underline; color: darkgreen;">
+
+`r fontawesome::fa("lightbulb", fill = "gold")` Clicca per leggere un
+suggerimento
+
+</summary>
+
+</br>
+
+Usa `scale_x_date()` con gli argomenti `date_breaks =` e
+`labels = scales::label_date(..., locale = "it")`.
+
+</br>
+
+</details>
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+# Istogramma -------------------------------------------------------
+ggplot(data = dati_clean, mapping = aes(x = date_vacc)) +
+  geom_histogram(binwidth = 7, fill = "darkgreen") +
+  scale_x_date(
+    date_breaks = "1 month",
+    labels = scales::label_date("%b %Y", locale = "it"))
+
+```
+
+</br>
+
+</details>
+
+Nell'area di prova, produci lo stesso grafico anche con i formati `"%B %Y"` e `"%d %b"`.
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+# italiano con %B %Y
+ggplot(data = dati_clean, mapping = aes(x = date_vacc)) +
+  geom_histogram(binwidth = 7, fill = "darkgreen") +
+  scale_x_date(
+    date_breaks = "1 month",
+    labels = scales::label_date("%B %Y", locale = "it"))
+
+# italiano con %d %b
+ggplot(data = dati_clean, mapping = aes(x = date_vacc)) +
+  geom_histogram(binwidth = 7, fill = "darkgreen") +
+  scale_x_date(
+    date_breaks = "1 month",
+    labels = scales::label_date("%d %b", locale = "it"))
+
+```
+
+</br>
+
+</details>
+
+::: {.callout-tip appearance="default" icon="false"}
+## Approfondimento: le date in inglese
+
+Per avere le etichette in inglese ("Jan 2021") basta cambiare la lingua
+con `locale = "en"`; i codici del formato restano gli stessi.
+
+```{r}
+#| eval: false
+ggplot(data = dati_clean, mapping = aes(x = date_vacc)) +
+  geom_histogram(binwidth = 7, fill = "darkgreen") +
+  scale_x_date(
+    date_breaks = "1 month",
+    labels = scales::label_date("%b %Y", locale = "en"))
+```
+:::
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+pacman::p_load(webexercises)
+
+opts <- c(
+  answer = "%B %Y",
+  "%b %Y",
+  "%d %b",
+  "%m %Y"
+)
+
+
+cat("Quale formato produce etichette come 'gennaio 2021'?", longmcq(opts))
+
+```
+:::
+::::
+
+## Facet
+
+A volte conviene dividere un grafico in tanti piccoli grafici, uno per
+ogni valore di una variabile, con gli stessi assi. Lo fa il livello
+`facet_wrap()`: dentro si scrive il simbolo tilde `~` seguito dal nome
+della variabile.
+
+```{r}
+#| eval: false
+facet_wrap(~ VARIABILE)
+```
+
+Con la tastiera italiana la tilde non ha un tasto suo: su Windows tieni
+premuto **Alt** e digita **126** sul tastierino numerico; su Mac usa
+**Option + 5**.
+
+Nell'area di prova, partendo dall'istogramma di `date_vacc` con barre di
+7 giorni, crea un pannello per regione con `facet_wrap()`.
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+ggplot(data = dati_clean, mapping = aes(x = date_vacc)) +
+  geom_histogram(binwidth = 7) +
+  facet_wrap(~ region)
+
+```
+
+</br>
+
+</details>
+
+Sopra l'area di prova, crea una nuova sezione (**Ctrl + Shift + R**) chiamata "Riquadri facet"; poi ripeti il facet con un pannello per `hiv`.
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+# Riquadri facet -------------------------------------------------------
+ggplot(data = dati_clean, mapping = aes(x = date_vacc)) +
+  geom_histogram(binwidth = 7) +
+  facet_wrap(~ hiv)
+
+```
+
+</br>
+
+</details>
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+pacman::p_load(webexercises)
+
+opts <- c(
+  answer = "Perché ogni persona con HIV è appaiata, di norma, a 2 controlli vaccinati nella stessa settimana",
+  "Per caso: con un altro campione la forma dei due pannelli sarebbe diversa",
+  "Perché facet_wrap() usa la stessa scala dell'asse y in tutti i pannelli",
+  "Perché le persone con HIV sono state vaccinate più tardi dei controlli"
+)
+
+
+cat("Perché i pannelli Senza HIV e Con HIV hanno la stessa forma, con altezze nei controlli circa doppie?", longmcq(opts))
+
+```
+:::
+::::
+
+## Salvare il grafico
+
+Un grafico si può salvare in un oggetto, come un data frame, con `<-`:
+in questo caso non compare nel pannello Plots, ma puoi vederlo eseguendo
+il nome dell'oggetto. Questo grafico va **nello script**: sopra l'area
+di prova, crea una nuova sezione (**Ctrl + Shift + R**) chiamata "Salvare il grafico" e lì salva nell'oggetto `scatter_anticorpi` lo scatter plot di età e anticorpi con i colori per stato HIV, `alpha = 0.1` e `geom_smooth()`, aggiungendo le etichette con `labs()`.
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+#| eval: false
+
+# Salvare il grafico -------------------------------------------------------
+scatter_anticorpi <- ggplot(data = dati_clean, mapping = aes(x = age, y = anticorpi, color = hiv)) +
+  geom_point(alpha = 0.1) +
+  geom_smooth() +
+  labs(
+    title = "Livello di anticorpi per età",
+    x = "Età (anni)",
+    y = "Livello di anticorpi",
+    color = "Stato HIV")
+
+scatter_anticorpi
+
+```
+
+</br>
+
+</details>
+
+Per salvare il grafico in un file si usa `ggsave()`, con questi
+argomenti:
+
+-   `plot =`, l'oggetto con il grafico;
+-   `filename =`, il percorso e il nome del file, tra virgolette:
+    l'estensione (`.png`, `.pdf`, `.jpg`) decide il formato;
+-   `width =` e `height =`, larghezza e altezza;
+-   `dpi =`, la risoluzione (300 va bene per la stampa).
+
+```{r}
+#| eval: false
+ggsave(plot = OGGETTO, filename = "CARTELLA/NOME_FILE.png", width = LARGHEZZA, height = ALTEZZA, dpi = 300)
+```
+
+Sotto `scatter_anticorpi`, esporta il grafico con `ggsave()` nella cartella
+`output` come file PNG di 10 × 6 pollici a 300 dpi e chiamalo
+"scatter_anticorpi.png".
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+#| eval: false
+
+ggsave(
+  plot = scatter_anticorpi,
+  filename = "output/scatter_anticorpi.png",
+  width = 10,
+  height = 6,
+  dpi = 300)
+
+```
+
+</br>
+
+</details>
+
+::: {.callout-warning appearance="default" icon="false"}
+## Attenzione: la cartella deve esistere
+
+`ggsave()` non crea le cartelle. Se nel progetto non c'è la cartella
+`output`, R si ferma con un errore: controlla nel pannello **Files**
+che ci sia, prima di salvare.
+:::
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+pacman::p_load(webexercises)
+
+opts <- c(
+  "Centimetri",
+  "Pixel",
+  "Millimetri",
+  answer = "Pollici"
+)
+
+
+cat("Se non specifichi l'argomento units, in quale unità sono espressi width e height?", longmcq(opts))
+
+```
+:::
+::::
+
+## Lo script completo
+
+Ecco come dovrebbe essere il tuo script per questa esercitazione:
+contiene solo gli oggetti da conservare, mentre le prove restano
+nell'area di prova. Confrontalo con il tuo: i commenti e alcuni dettagli
+possono essere diversi, ma i comandi devono fare le stesse cose. Lo
+script completo dei Moduli 5, 6 e 8 lo trovi anche nella cartella
+`script/backup`, nel file `backup_plot.R`.
+
+<details>
+
+<summary style="text-decoration: underline; color: blue;">
+
+`r fontawesome::fa("check", fill = "blue")` Clicca per vedere lo script
+completo
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+#| eval: false
+
+### Corso introduttivo a R
+### Obiettivo: grafici con ggplot2 (Moduli 5, 6 e 8)
+### Autore: Marco Rossi
+### Data di creazione: 2 dicembre 2026
+### Contatto: marco.rossi@iss.it
+
+
+# Caricamento pacchetti ---------------------------------------------------
+pacman::p_load(
+  rio,       # importazione ed esportazione dei dati
+  skimr,     # panoramica dei dati
+  janitor,   # pulizia dei dati e tabelle
+  lubridate, # lavorare con le date
+  epikit,    # classi di età
+  gtsummary, # tabelle descrittive
+  flextable, # tabelle da presentare
+  tidyverse  # gestione e visualizzazione dei dati
+)
+
+
+# Importazione dati -------------------------------------------------------
+dati_clean <- import("dati/dati_clean.rds")
+
+
+# Modulo 05 - Data Visualization con ggplot2 (Parte 1) =====================
+
+# Diagnosi di COVID-19 -----------------------------------------------------
+dati_clean <- dati_clean %>%
+  mutate(covid = factor(event,
+                        levels = c(0, 1),
+                        labels = c("Senza diagnosi", "Con diagnosi")))
+
+# Età per regione ----------------------------------------------------------
+ggplot(
+  data = dati_clean,                        # coorte di vaccinati
+  mapping = aes(
+    x = region,                             # regione sull'asse x
+    y = age,                                # età sull'asse y
+    fill = region)) +                       # riempimento per regione
+  geom_boxplot() +                          # un boxplot per regione
+  labs(
+    title = "Età alla vaccinazione per regione",
+    subtitle = "Persone con e senza HIV",
+    x = "Regione",
+    y = "Età (anni)",
+    caption = "Grafico modulo 5",
+    fill = "Regione")
+
+# Vaccinati per regione e classe d'età -------------------------------------
+ggplot(data = dati_clean, mapping = aes(x = region, fill = age_group)) +
+  geom_bar(position = "dodge")
+
+# Dati aggregati -----------------------------------------------------------
+vaccinati_regione <- dati_clean %>%
+  group_by(region) %>%
+  summarise(n_vaccinati = n(), .groups = "drop")
+
+ggplot(data = vaccinati_regione, mapping = aes(x = region, y = n_vaccinati)) +
+  geom_col()
+
+# Istogramma ---------------------------------------------------------------
+ggplot(data = dati_clean, mapping = aes(x = date_vacc)) +
+  geom_histogram(binwidth = 7, fill = "darkgreen") +
+  scale_x_date(
+    date_breaks = "1 month",
+    labels = scales::label_date("%b %Y", locale = "it"))
+
+# Riquadri facet -----------------------------------------------------------
+ggplot(data = dati_clean, mapping = aes(x = date_vacc)) +
+  geom_histogram(binwidth = 7) +
+  facet_wrap(~ hiv)
+
+# Salvare il grafico -------------------------------------------------------
+scatter_anticorpi <- ggplot(data = dati_clean, mapping = aes(x = age, y = anticorpi, color = hiv)) +
+  geom_point(alpha = 0.1) +
+  geom_smooth() +
+  labs(
+    title = "Livello di anticorpi per età",
+    x = "Età (anni)",
+    y = "Livello di anticorpi",
+    color = "Stato HIV")
+
+scatter_anticorpi
+
+ggsave(
+  plot = scatter_anticorpi,
+  filename = "output/scatter_anticorpi.png",
+  width = 10,
+  height = 6,
+  dpi = 300)
+
+```
+
+</br>
+
+</details>
+
+## Riepilogo
+
+-   Un grafico `{ggplot2}` si costruisce per strati (*layers*) collegati
+    con `+`: dati (`ggplot()`), estetiche (`aes()`) e geom (`geom_*()`).
+    Il `+` va alla fine della riga, non all'inizio della successiva
+-   Estetiche **dinamiche** (una variabile) dentro `aes()`; estetiche
+    **statiche** (un valore fisso) dentro il geom
+-   Una variabile numerica usata come categoria dà una scala continua:
+    per le categorie serve un fattore, come `hiv` creata nel Modulo 3 e
+    `covid` creata in questo modulo da `event`
+-   `geom_bar()` conta le righe; `geom_col()` usa valori già aggregati
+-   `geom_jitter()` e `geom_boxplot()` confrontano una variabile
+    continua tra gruppi; `geom_point()` mostra la relazione tra due
+    variabili e `geom_smooth()` ne aggiunge la tendenza;
+    `geom_histogram()` mostra la distribuzione di una variabile
+-   Più livelli `geom_` si sovrappongono nell'ordine in cui sono
+    scritti. Le estetiche dentro `ggplot()` valgono per tutti i livelli,
+    quelle dentro un geom (`mapping = aes()`) solo per quel livello
+-   `alpha` regola la trasparenza, da 0 (invisibile) a 1 (coprente):
+    serve quando molti punti si sovrappongono
+-   `labs()` per le etichette, `facet_wrap()` per i pannelli,
+    `scale_x_date()` con `scales::label_date(locale = "it")` per le date
+    in italiano, `ggsave()` per salvare
+    
+## Risorse aggiuntive
+
+-   Documentazione di `{ggplot2}`:
+    <https://ggplot2.tidyverse.org/reference/>
+-   Cheat sheet di `{ggplot2}`:
+    <https://rstudio.github.io/cheatsheets/html/data-visualization.html>
+
+<!-- **Autori** -->
+
+<!-- Autori originali: Nome Cognome (Istituzione), Nome Cognome -->
+
+<!-- (Istituzione)\ -->
+
+<!-- Fonte dei dati: [DA COMPLETARE: origine del dataset dati_clean] coorte di -->
+
+<!-- persone vaccinate con e senza HIV; esercizi ispirati al modulo -->
+
+<!-- *ggplot basics* di Applied Epi (<https://appliedepi.org>)\ -->
+
+<!-- Adattato da: Nome Cognome (Istituzione), Nome Cognome (Istituzione) -->
+
+<!-- ### Termini di utilizzo -->
+
+<!-- **Disclaimer**: [DA COMPLETARE: indicare se e come i dati sono stati -->
+
+<!-- modificati rispetto ai dati originali per finalità didattiche.] -->
+
+<!-- Sei libero di: -->
+
+<!-- -   **Condividere**: copiare e distribuire il materiale -->
+
+<!-- -   **Remixare**: adattare e costruire nuovo materiale a partire da -->
+
+<!--     questo -->
+
+<!-- Alle seguenti condizioni: -->
+
+<!-- -   **Attribuzione**: devi attribuire il materiale nel modo specificato -->
+
+<!--     dall'autore o dal licenziante (ma non in un modo che suggerisca che -->
+
+<!--     essi avallino te o il tuo utilizzo dell'opera). Il modo migliore per -->
+
+<!--     farlo è mantenere invariato l'elenco dei contributori: fonti, autori -->
+
+<!--     e revisori. -->
+
+<!-- -   **Condividi allo stesso modo**: se modifichi, trasformi o costruisci -->
+
+<!--     nuovo materiale a partire da questo, puoi distribuire il risultato -->
+
+<!--     solo con una licenza uguale o simile a questa. Le modifiche -->
+
+<!--     apportate devono essere documentate. A questa condizione, puoi -->
+
+<!--     aggiungere il tuo nome all'elenco dei contributori. -->
+
+<!-- -   **Notifica**: se utilizzi il materiale nel modo specificato -->
+
+<!--     dall'autore o dal licenziante, scrivi a -->
+
+<!--     [nome\@iss.it](mailto:nome@iss.it) -->
+
+<!-- -   Non puoi vendere questo materiale da solo, ma puoi utilizzarlo come -->
+
+<!--     parte di un'attività didattica. -->
+
+<!-- Resta inteso che: -->
+
+<!-- -   **Rinuncia**: una qualsiasi delle condizioni sopra può essere -->
+
+<!--     derogata previa autorizzazione del titolare dei diritti d'autore. -->
+
+<!-- -   **Pubblico dominio**: se l'opera, o un suo elemento, è di pubblico -->
+
+<!--     dominio ai sensi della legge applicabile, tale condizione non è in -->
+
+<!--     alcun modo modificata dalla licenza. -->
+
+<!-- -   **Altri diritti**: la licenza non pregiudica in alcun modo i -->
+
+<!--     seguenti diritti: -->
+
+<!--     -   il diritto di utilizzo corretto ("fair dealing"/"fair use"), o -->
+
+<!--         altre eccezioni e limitazioni al diritto d'autore applicabili; -->
+
+<!--     -   i diritti morali dell'autore; -->
+
+<!--     -   i diritti che altre persone possono avere sull'opera stessa o -->
+
+<!--         sul modo in cui viene utilizzata, come i diritti di immagine o -->
+
+<!--         di riservatezza. -->
+
+<!-- -   **Avviso**: per qualsiasi riutilizzo o distribuzione, devi rendere -->
+
+<!--     chiari agli altri i termini della licenza di questo materiale, -->
+
+<!--     mantenendo insieme l'opera e la licenza corrente. -->
+
+<!-- Questa licenza si basa su -->
+
+<!-- <http://creativecommons.org/licenses/by-sa/3.0/> -->
+
+<!-- ### Versione e revisioni -->
+
+<!-- Data della prima versione:  -->
+
+<!-- | Data | Modifiche apportate | Autore | -->
+
+<!-- |------|---------------------|--------| -->
+
+<!-- |      |                     |        | -->

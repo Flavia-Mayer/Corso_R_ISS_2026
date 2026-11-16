@@ -1,0 +1,1482 @@
+---
+editor_options:
+  chunk_output_type: console
+execute:
+  warning: false
+  error: false
+format:
+  html:
+    css: webex.css
+    include-after-body: webex.js
+    df-print: kable
+    toc: true
+    toc-depth: 4
+    toc-expand: 1
+editor:
+  markdown:
+    wrap: 72
+title: |
+  ![](immagini/logo_dmi.png){width=3in}
+---
+
+```{r}
+#| include: false
+pacman::p_load(webexercises)
+```
+
+# **Corso introduttivo al software statistico R**
+
+# Modulo 09 Report automatici con Quarto
+
+## Obiettivi del modulo
+
+-   Creare un documento Quarto e trasformarlo in un report Word con il
+    pulsante *Render*
+-   Modificare l'intestazione YAML per impostare titolo, autore, data e
+    opzioni del documento
+-   Inserire blocchi di codice (chunk) e controllarne il comportamento
+    con le opzioni `#|`
+-   Scrivere il testo del report con la sintassi Markdown e inserire
+    numeri calcolati da R direttamente nel testo
+-   Costruire un report sulla coorte vaccinale riutilizzando il codice
+    scritto nei moduli precedenti
+
+## Formato dell'esercizio
+
+Questo esercizio è progettato per essere una guida e per aiutarti a
+completarlo in autonomia. Ti consigliamo fortemente di provare a
+eseguire il codice prima di guardare le soluzioni. Per aiutarti,
+abbiamo incluso in alcuni punti dei suggerimenti che possono
+indirizzarti nella direzione giusta. Li troverai così:
+
+<details>
+
+<summary style="text-decoration: underline; color: darkgreen;">
+
+`r fontawesome::fa("lightbulb", fill = "gold")` Clicca per leggere un
+suggerimento
+
+</summary>
+
+</br>
+
+Questo è un suggerimento.
+
+</br>
+
+</details>
+
+Le soluzioni, invece, avranno questo aspetto:
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+print("Questo è un esempio di soluzione")
+
+```
+
+</br>
+
+</details>
+
+Durante l'esercizio troverai anche domande a risposta multipla, che
+servono a verificare se stai seguendo correttamente lo svolgimento.
+Le domande saranno simili a questa:
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+opts <- c(
+  "2",
+  "5",
+  answer = "4"
+)
+
+cat("Domanda di esempio: quanto fa 2 + 2?", longmcq(opts))
+```
+:::
+::::
+
+Lungo il modulo troverai anche due tipi di riquadri colorati. I
+riquadri **gialli** segnalano errori frequenti o punti in cui R si
+comporta in modo inatteso: leggili sempre, perché possono farti
+risparmiare tempo.
+
+::: {.callout-warning appearance="default" icon="false"}
+## Attenzione a …
+
+Questo è un esempio di riquadro di attenzione.
+:::
+
+I riquadri **verdi** contengono invece approfondimenti facoltativi,
+per chi vuole andare un po' oltre: puoi saltarli senza perdere il filo
+dell'esercizio e tornarci in un secondo momento.
+
+::: {.callout-tip appearance="default" icon="false"}
+## Approfondimento: …
+
+Questo è un esempio di riquadro di approfondimento.
+:::
+
+Ti consigliamo di provare comunque a rispondere e a eseguire il
+codice da solo prima di consultare suggerimenti e soluzioni: è così
+che si impara davvero a usare R.
+
+
+
+## Iniziamo!
+
+Nei giorni scorsi hai pulito i dati della coorte vaccinale, hai creato
+tabelle e grafici. Ma immagina di dover preparare lo stesso report ogni
+mese, con i dati aggiornati: dovresti rieseguire lo script, copiare
+ogni tabella e ogni grafico in Word, aggiornare a mano i numeri nel
+testo… e sperare di non sbagliare nulla.
+
+**Quarto** risolve questo problema: in un unico documento scrivi il
+**testo** del report e il **codice R** che produce tabelle, grafici e
+numeri. Con un clic, Quarto esegue il codice e crea il report finale
+(in Word, HTML, PDF o altri formati). Quando arrivano dati nuovi, basta
+rifare il clic.
+
+In questo modulo creerai un report in Word sulla coorte vaccinale.
+
+::: {.callout-tip appearance="default" icon="false"}
+## Approfondimento: Quarto e R Markdown
+
+Forse hai già sentito parlare di **R Markdown** (file `.Rmd`): è lo
+strumento "storico" per fare report con R, e funziona in modo molto
+simile. Quarto (file `.qmd`) ne è l'evoluzione: la sintassi è quasi la
+stessa, ma funziona anche con altri linguaggi (Python, Julia) ed è già
+installato insieme a RStudio. Anche le esercitazioni di questo corso
+sono scritte in Quarto!
+:::
+
+## Creare un documento Quarto
+
+### Il nuovo documento
+
+In RStudio clicca su *File -\> New File -\> Quarto Document…*. Nella
+finestra che si apre:
+
+-   scrivi un titolo provvisorio in *Title* e il tuo nome in *Author*
+    (potrai cambiarli dopo);
+-   in *Format* scegli **Word**;
+-   lascia *Engine* su **Knitr**, il motore che esegue il codice R;
+-   **togli** la spunta da *Use visual markdown editor*: per imparare
+    conviene vedere il testo "così com'è";
+-   clicca su *Create*.
+
+<!-- DA COMPLETARE: screenshot della finestra "New Quarto Document"
+     (es. immagini/m9_nuovo_quarto.png) -->
+
+Si apre un nuovo documento con un contenuto di esempio. Salvalo subito
+con *File -\> Save* nella sottocartella `script` con il nome `report_coorte`.
+
+### Com'è fatto un documento Quarto
+
+Guarda il documento di esempio: contiene tre tipi di elementi.
+
+1.  In cima, tra due righe di tre trattini (`---`), c'è
+    l'**intestazione YAML**, con le informazioni generali del documento
+    (titolo, autore, formato).
+2.  Ci sono dei **blocchi di codice** (in inglese *chunk*), su sfondo
+    grigio, che iniziano con ```` ```{r} ```` e finiscono con
+    ```` ``` ````. Contengono codice R, esattamente come uno script.
+3.  Tutto il resto è **testo**, scritto con una sintassi semplice
+    chiamata *Markdown*.
+
+Li vedremo uno alla volta.
+
+## Il render
+
+### Il primo report
+
+Per trasformare il documento in un report, clicca sul pulsante
+**Render** (con la freccia blu) in alto, oppure usa la combinazione di
+tasti **Ctrl + Shift + K** (**Cmd + Shift + K** su Mac).
+
+Nel riquadro in basso vedrai comparire il lavoro di Quarto. Se tutto va
+bene, si aprirà il file Word, che trovi anche nella stessa cartella del
+documento Quarto, con lo stesso nome (`report_coorte.docx`). Confronta
+il file Word con il documento Quarto: cosa è successo al codice e al
+testo?
+
+Quarto fa le seguenti operazioni durante il render:
+
+1.  esegue tutti i blocchi di codice, dall'alto verso il basso;
+2.  mette insieme testo, codice e risultati (tabelle, grafici, numeri);
+3.  crea il file nel formato richiesto.
+
+Il file Word è un normale documento: puoi modificarlo, aggiungere
+commenti e inviarlo via email. È un formato comodo quando l'analisi è
+automatica, ma l'interpretazione dei risultati la scrivi tu.
+
+::: {.callout-warning appearance="default" icon="false"}
+## Attenzione al file Word aperto
+
+Se il file Word è ancora aperto quando rifai il render, su Windows
+compare un errore e il report non viene aggiornato: Word "blocca" il
+file. **Chiudi sempre il file Word prima di ogni nuovo render.**
+:::
+
+::: {.callout-warning appearance="default" icon="false"}
+## Attenzione: il render parte da zero
+
+Il render avviene in una **sessione di R nuova e vuota**: non vede gli
+oggetti che hai nel pannello Environment e i pacchetti che hai caricato
+nella console. Per questo il documento Quarto deve contenere **tutto**
+il codice necessario, dal caricamento dei pacchetti all'importazione
+dei dati. Se il render si ferma con un errore come
+`object 'dati_clean' not found` oppure `could not find function`, quasi
+sempre manca un passaggio nel documento.
+:::
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+opts <- c(
+  "Sì, perché il render usa la stessa sessione di R della console",
+  answer = "No, il render avviene in una sessione nuova: il codice deve essere nel documento",
+  "Sì, ma solo se il dataset è salvato nel pannello Environment"
+)
+
+cat("Immagina di aver importato i dati nella console, ma non nel documento Quarto. Il render funziona?", longmcq(opts))
+```
+:::
+::::
+
+::: {.callout-tip appearance="default" icon="false"}
+## Approfondimento: gli altri formati
+
+Lo stesso documento può diventare un report in formati diversi: basta
+cambiare il formato nell'intestazione YAML (che vedremo tra poco).
+
+-   `html`: una pagina web che si apre nel browser, anche **senza
+    internet**: il file resta sul tuo computer. Permette elementi
+    interattivi (schede, sommario cliccabile, codice nascosto).
+-   `pdf`: richiede un programma aggiuntivo (TinyTeX), che si installa
+    con il comando `quarto install tinytex` nel riquadro *Terminal* di
+    RStudio. In alternativa puoi creare il Word e salvarlo in PDF.
+-   `pptx` o `revealjs`: presentazioni (PowerPoint o HTML).
+
+Puoi leggere di più nella guida ufficiale di Quarto (vedi le Risorse
+aggiuntive).
+:::
+
+## L'intestazione YAML
+
+### Titolo, autore e data
+
+L'intestazione YAML (la sigla, un po' scherzosamente, sta per *YAML
+Ain't Markup Language*) è la parte in cima al documento, tra le due
+righe `---`. Ogni riga contiene una **chiave**, seguita da due punti e
+dal suo **valore**:
+
+```yaml
+---
+title: "Untitled"
+author: "Nome Cognome"
+format: docx
+editor: source
+---
+```
+
+Modifica l'intestazione del tuo documento in modo che il report abbia:
+
+-   il titolo "Report sulla coorte vaccinale";
+-   il sottotitolo "Vaccinazione e diagnosi di COVID-19, 2021"
+    (chiave `subtitle`);
+-   il tuo nome, o quello del tuo ufficio, come autore;
+-   la data di oggi, che si aggiorna da sola a ogni render (chiave
+    `date`, con il valore `today`);
+-   la data scritta per esteso in italiano (chiavi `date-format: long`
+    e `lang: it`).
+
+Poi rifai il render e guarda il risultato.
+
+<details>
+
+<summary style="text-decoration: underline; color: darkgreen;">
+
+`r fontawesome::fa("lightbulb", fill = "gold")` Clicca per leggere un
+suggerimento
+
+</summary>
+
+</br>
+
+-   I testi vanno tra virgolette, `today` no: è una parola speciale che
+    Quarto riconosce.
+-   L'ordine delle chiavi non conta.
+-   Senza `lang: it` la data viene scritta in inglese (es. "December 4,
+    2026").
+
+</br>
+
+</details>
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```yaml
+---
+title: "Report sulla coorte vaccinale"
+subtitle: "Vaccinazione e diagnosi di COVID-19, 2021"
+author: "Nome Cognome (Istituto Superiore di Sanità)"
+date: today
+date-format: long
+lang: it
+format: docx
+editor: source
+---
+```
+
+</br>
+
+</details>
+
+::: {.callout-warning appearance="default" icon="false"}
+## Attenzione agli spazi nello YAML
+
+Lo YAML è molto pignolo: dopo i due punti ci vuole **uno spazio**
+(`title: "Report"`, non `title:"Report"`), e quando una chiave contiene
+altre chiavi queste vanno **rientrate** di due spazi (lo vedrai tra
+poco). Se il render si ferma con un errore che parla di YAML, controlla
+per prima cosa spazi e due punti.
+:::
+
+### Le opzioni del formato
+
+Alcune chiavi riguardano solo un formato. In quel caso il formato non
+si scrive più sulla stessa riga (`format: docx`), ma diventa una chiave
+che contiene altre chiavi, rientrate di due spazi:
+
+```yaml
+format:
+  docx:
+    toc: true
+    number-sections: true
+```
+
+-   `toc: true` aggiunge un **sommario** (*table of contents*) all'inizio
+    del documento;
+-   `number-sections: true` **numera** i titoli delle sezioni.
+
+Aggiungi le due opzioni al tuo documento e rifai il render.
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+opts <- c(
+  "Sulla stessa riga di format: docx",
+  answer = "Su una riga a sé, sotto docx:, rientrata di due spazi in più",
+  "In qualsiasi punto dell'intestazione, senza rientro"
+)
+
+cat("Dove va scritta l'opzione toc: true per aggiungere il sommario al report Word?", longmcq(opts))
+```
+:::
+::::
+
+## I blocchi di codice
+
+### Inserire ed eseguire un chunk
+
+Cancella tutto il contenuto di esempio **sotto** l'intestazione YAML
+(l'intestazione no!). Poi:
+
+1.  scrivi una riga di testo, per esempio "Qualche semplice calcolo:";
+2.  vai a capo e inserisci un nuovo chunk con la combinazione di tasti
+    **Ctrl + Alt + I** (**Cmd + Option + I** su Mac), oppure con il
+    pulsante verde **+C** in alto;
+3.  dentro il chunk scrivi:
+
+```{r}
+#| eval: false
+2 + 2
+10 / 5
+```
+
+Per eseguire il chunk mentre lavori, senza fare il render, clicca sulla
+freccia verde in alto a destra del chunk: il risultato compare sotto il
+chunk. Puoi anche eseguire una riga alla volta con **Ctrl + Invio**,
+come in uno script.
+
+Ora rifai il render. Nel report Word vedi solo i risultati, o anche il
+codice?
+
+### Le opzioni dei chunk
+
+Per impostazione predefinita il report mostra **sia il codice sia il
+risultato**. Per un report destinato ai colleghi o ai decisori di
+sanità pubblica, però, di solito il codice non serve. Il comportamento
+di ogni chunk si controlla con delle **opzioni**, scritte nelle prime
+righe del chunk e precedute da `#|`:
+
+```{r}
+#| echo: false
+#| eval: false
+2 + 2
+10 / 5
+```
+
+Le opzioni più utili sono elencate qui sotto; nel chunk, ricorda, ognuna
+va scritta su una riga a sé dopo `#|`.
+
+| Opzione | Cosa fa |
+|-----------------------|-------------------------------------------|
+| `echo: false` | esegue il codice e mostra il risultato, ma **nasconde il codice** |
+| `eval: false` | mostra il codice ma **non lo esegue** |
+| `include: false` | esegue il codice ma **non mostra nulla** (né codice né risultato) |
+| `warning: false` | nasconde i warning |
+| `message: false` | nasconde i messaggi (per esempio quelli dei pacchetti) |
+| `fig-cap: "..."` | aggiunge una didascalia al grafico prodotto dal chunk |
+| `tbl-cap: "..."` | aggiunge una didascalia alla tabella prodotta dal chunk |
+
+Aggiungi `#| echo: false` al tuo chunk e rifai il render. Poi prova
+`#| eval: false` e `#| include: false`, e confronta i risultati.
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+opts <- c(
+  "#| eval: false",
+  answer = "#| include: false",
+  "#| echo: false"
+)
+
+cat("Il chunk che carica i pacchetti deve essere eseguito, ma nel report non deve comparire nulla. Quale opzione usi?", longmcq(opts))
+```
+:::
+::::
+
+::: {.callout-tip appearance="default" icon="false"}
+## Approfondimento: le opzioni in stile R Markdown
+
+Nei documenti R Markdown, e in molti esempi che troverai online, le
+opzioni sono scritte dentro le parentesi graffe:
+```` ```{r, echo=FALSE} ````. Funziona anche in Quarto, ma lo stile con
+`#|` è quello consigliato: è più leggibile e usa `true` e `false` in
+minuscolo, come nello YAML.
+:::
+
+### Le opzioni per tutto il documento
+
+Scrivere `#| echo: false` in ogni chunk è scomodo. Le opzioni che
+valgono per **tutti** i chunk si scrivono una volta sola
+nell'intestazione YAML, sotto la chiave `execute`:
+
+```yaml
+execute:
+  echo: false
+  warning: false
+```
+
+Le opzioni scritte in un chunk hanno la precedenza su quelle generali:
+se un giorno vorrai mostrare il codice di un solo chunk, basterà
+scrivere `#| echo: true` in quel chunk.
+
+Aggiungi all'intestazione YAML le opzioni `execute` qui sopra e, per
+nascondere anche i messaggi dei pacchetti, queste righe:
+
+```yaml
+knitr:
+  opts_chunk:
+    message: false
+```
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```yaml
+---
+title: "Report sulla coorte vaccinale"
+subtitle: "Vaccinazione e diagnosi di COVID-19, 2021"
+author: "Nome Cognome (Istituto Superiore di Sanità)"
+date: today
+date-format: long
+lang: it
+format:
+  docx:
+    toc: true
+    number-sections: true
+execute:
+  echo: false
+  warning: false
+knitr:
+  opts_chunk:
+    message: false
+editor: source
+---
+```
+
+</br>
+
+</details>
+
+::: {.callout-warning appearance="default" icon="false"}
+## Attenzione a `message: false`
+
+Hai notato che `message: false` non è sotto `execute:` insieme a `echo`
+e `warning`? Il motivo è che Quarto funziona anche con altri linguaggi
+(per esempio Python), e sotto `execute:` accetta solo le opzioni comuni
+a tutti. I *messaggi* (le scritte informative che R stampa, per esempio
+quando carichi un pacchetto) esistono solo in R: se scrivi
+`message: false` sotto `execute:`, Quarto lo ignora senza avvisarti e i
+messaggi compaiono comunque nel report.
+
+Per le opzioni specifiche di R si usa `knitr: opts_chunk:`, che le passa
+direttamente a *knitr*, il pacchetto che esegue il codice R del
+documento. In alternativa, puoi scrivere `#| message: false` nel singolo
+chunk che produce i messaggi.
+:::
+
+## Il testo
+
+### La sintassi Markdown
+
+Il testo del report si scrive con la sintassi **Markdown**: pochi
+simboli che indicano come formattare il testo.
+
+| Scrivi nel documento | Nel report ottieni |
+|---------------------------|-------------------------------------|
+| `# Titolo` | un titolo di primo livello |
+| `## Sottotitolo` | un titolo di secondo livello |
+| `**grassetto**` | **grassetto** |
+| `*corsivo*` | *corsivo* |
+| `- voce` (a inizio riga) | un elenco puntato |
+| `1. voce` (a inizio riga) | un elenco numerato |
+
+Due regole da ricordare:
+
+-   per iniziare un **nuovo paragrafo** lascia una riga vuota: andare a
+    capo una sola volta non basta;
+-   prima di un **elenco** (e prima di un titolo) ci vuole una riga
+    vuota, altrimenti non viene riconosciuto.
+
+Sotto il tuo chunk, prova a scrivere questo testo e rifai il render:
+
+> **Perché usare R?**
+>
+> Molti epidemiologi imparano R perché offre:
+>
+> -   *flessibilità* nelle analisi;
+> -   grafici avanzati e report automatici;
+> -   un software **libero e gratuito**.
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```markdown
+**Perché usare R?**
+
+Molti epidemiologi imparano R perché offre:
+
+-   *flessibilità* nelle analisi;
+-   grafici avanzati e report automatici;
+-   un software **libero e gratuito**.
+```
+
+</br>
+
+</details>
+
+::: {.callout-tip appearance="default" icon="false"}
+## Approfondimento: l'editor visuale e le interruzioni di pagina
+
+In alto a sinistra nel documento ci sono due pulsanti, *Source* e
+*Visual*. Con *Visual* il documento si presenta in modo simile a Word,
+con i pulsanti per grassetto, elenchi, tabelle e immagini: è comodo
+quando avrai preso confidenza con la sintassi.
+
+Per forzare un'interruzione di pagina nel report Word, scrivi su una
+riga da sola `{{</* pagebreak */>}}`.
+:::
+
+### I numeri nel testo: il codice inline
+
+Spesso nel testo di un report compaiono dei numeri: "sono stati
+arruolati 47.717 soggetti". Se li scrivi a mano, il mese prossimo
+saranno sbagliati. Con il **codice inline** puoi far calcolare a R un
+valore direttamente dentro una frase:
+
+-   inizia con un apice inverso (backtick), la lettera `r` e uno spazio;
+-   scrivi il codice R;
+-   chiudi con un altro apice inverso.
+
+Per esempio, scrivi questa frase nel tuo documento e rifai il render:
+
+``` markdown
+Questo report è stato creato il `r knitr::inline_expr("Sys.Date()")`.
+```
+
+Nel report, al posto del codice, comparirà la data di oggi. La funzione
+`Sys.Date()` restituisce la data del computer.
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+opts <- c(
+  "Il testo \"r nrow(dati_clean)\" così com'è",
+  answer = "Il numero di righe del dataset dati_clean",
+  "Un chunk con il codice nrow(dati_clean)"
+)
+
+cat("Immagina di scrivere nel documento: 'Sono stati analizzati `r nrow(dati_clean)` soggetti'. Cosa comparirà nel report al posto del codice?", longmcq(opts))
+```
+:::
+::::
+
+::: {.callout-warning appearance="default" icon="false"}
+## Attenzione all'ordine del codice
+
+Quarto esegue tutto **dall'alto verso il basso**, chunk e codice inline
+compresi. Se in una frase usi `nrow(dati_clean)`, l'oggetto
+`dati_clean` deve essere stato creato in un chunk **più in alto** nel
+documento: altrimenti il render si ferma con l'errore
+`object 'dati_clean' not found`. Per questo il testo del report va
+scritto **dopo** i chunk che caricano i pacchetti e importano i dati.
+:::
+
+## Costruire il report
+
+Ora hai tutti gli strumenti per costruire il report sulla coorte
+vaccinale. Cancella dal documento le prove fatte finora (calcoli,
+elenco, frase con la data), ma **non** l'intestazione YAML.
+
+L'obiettivo di questo esercizio è creare un **report descrittivo della
+coorte** dello studio, trasformando il codice che hai scritto finora in
+un report automatico con Quarto. Non dovrai riscrivere il codice: ti
+chiederemo di copiare diversi pezzi degli script che hai fatto finora durante il corso e  di incollarli nei
+chunk del documento Quarto. Costruirai il report un pezzo alla volta:
+**dopo ogni pezzo, rifai il render** per controllare che tutto
+funzioni. Se qualcosa non va, è molto più facile capire cosa è
+successo.
+
+### Pacchetti e dati
+
+Il primo chunk carica i pacchetti, il secondo importa i dati. Il codice
+lo hai già: copialo dallo script `tabelle_grouping.R`. C'è, però, una
+differenza rispetto allo script.
+
+-   **Usa sempre `here()` per i percorsi dei file**. Durante il render,
+    R lavora nella cartella in cui si trova il documento Quarto
+    (`script`), non nella cartella principale del progetto: un
+    percorso come `"dati/..."` non verrebbe trovato. `here()`, invece,
+    parte sempre dalla cartella del progetto. Quindi, invece di
+    scrivere `import("dati/dati_clean.rds")`, scrivi
+    `import(here("dati", "dati_clean.rds"))`.
+
+Inserisci i due chunk. Nel primo carica i pacchetti, compresi `{here}`
+e `{sf}`, che ti serviranno per i percorsi e per la mappa. Nel secondo
+importa il dataset `dati_clean.rds` dalla cartella `dati`, chiamandolo
+`dati_clean`. Importa anche, come nel Modulo 8, lo shapefile delle
+regioni con `read_sf()`, chiamandolo `regioni_sf`, e la tabella
+`regioni.rds` con la popolazione, chiamandola `regioni`.
+
+<details>
+
+<summary style="text-decoration: underline; color: darkgreen;">
+
+`r fontawesome::fa("lightbulb", fill = "gold")` Clicca per leggere un
+suggerimento
+
+</summary>
+
+</br>
+
+Né il caricamento dei pacchetti né l'importazione dei dati producono
+qualcosa da mostrare nel report: per entrambi i chunk va bene
+`#| include: false`. Le righe per importare lo shapefile e la tabella
+delle regioni sono nella sezione "Mappe" dello script `plot.R`.
+
+</br>
+
+</details>
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+````{verbatim}
+```{r}
+#| include: false
+# Caricamento pacchetti
+pacman::p_load(
+  rio,          # importare i dati
+  here,         # percorsi relativi dei file
+  flextable,    # tabelle per i report
+  sf,           # dati spaziali
+  tidyverse     # gestione e visualizzazione dei dati
+)
+```
+
+```{r}
+#| include: false
+# Importazione dati
+dati_clean <- import(here("dati", "dati_clean.rds"))
+regioni_sf <- read_sf(here("dati", "shapefiles", "regioni.shp"))
+regioni    <- import(here("dati", "regioni.rds"))
+```
+````
+
+</br>
+
+</details>
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+opts <- c(
+  "Nella cartella principale del progetto",
+  answer = "Nella cartella in cui è salvato il documento Quarto",
+  "Nella cartella dati"
+)
+
+cat("Durante il render, in quale cartella lavora R?", longmcq(opts))
+```
+:::
+::::
+
+### Introduzione
+
+Scrivi una sezione introduttiva, con il titolo `# Introduzione`, che
+descriva in poche righe la coorte. Usa il codice inline per inserire
+nel testo almeno:
+
+-   il numero di soggetti della coorte;
+-   il numero di soggetti con HIV e senza HIV;
+-   il numero di soggetti che hanno avuto la diagnosi di COVID-19
+    durante il follow-up (variabile `event`).
+
+<details>
+
+<summary style="text-decoration: underline; color: darkgreen;">
+
+`r fontawesome::fa("lightbulb", fill = "gold")` Clicca per leggere un
+suggerimento
+
+</summary>
+
+</br>
+
+-   `nrow()` conta le righe di un data frame.
+-   `event` vale `1` se il soggetto ha avuto l'evento e `0` altrimenti:
+    sommando la variabile con `sum()` ottieni il numero di eventi.
+    Ricorda che fuori dalla catena serve l'operatore `$`.
+-   Anche per lo stato HIV puoi usare `sum()`, con una condizione:
+    `sum(dati_clean$hiv == "Con HIV")`.
+
+</br>
+
+</details>
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+Per esempio:
+
+````{verbatim}
+# Introduzione
+
+Questo report descrive una coorte di persone vaccinate nel 2021,
+seguite per la diagnosi di COVID-19. La coorte comprende
+`r nrow(dati_clean)` soggetti: `r sum(dati_clean$hiv == "Con HIV")`
+persone con HIV e `r sum(dati_clean$hiv == "Senza HIV")` senza HIV.
+Durante il follow-up, `r sum(dati_clean$event)` soggetti hanno avuto
+la diagnosi di COVID-19.
+````
+
+</br>
+
+</details>
+
+::: {.callout-tip appearance="default" icon="false"}
+## Approfondimento: numeri più leggibili
+
+Per scrivere i numeri grandi con il punto delle migliaia (47.717 invece
+di 47717) usa la funzione `format()` con l'argomento `big.mark`:
+`format(nrow(dati_clean), big.mark = ".")`. Per le percentuali, `round()`
+arrotonda al numero di decimali che vuoi:
+`round(mean(dati_clean$event) * 100, 1)`.
+:::
+
+### Descrizione della coorte
+
+Aggiungi una sezione `# Descrizione della coorte` con la tabella
+`tab_sintesi_hiv`, che hai creato nel Modulo 4: copia il codice dalla
+sezione "Sintesi per stato HIV" dello script, sia la creazione di
+`sintesi_hiv` sia la sua formattazione con `{flextable}`, e, prima della
+tabella, scrivi una frase che la descriva.
+
+Aggiungi poi al chunk una didascalia con l'opzione `#| tbl-cap:`.
+Perché la didascalia compaia, il chunk deve avere anche un'etichetta
+che inizia con `tbl-`, per esempio `#| label: tbl-sintesi`: Quarto
+numera da solo le tabelle ("Tabella 1", "Tabella 2"…).
+
+<details>
+
+<summary style="text-decoration: underline; color: darkgreen;">
+
+`r fontawesome::fa("lightbulb", fill = "gold")` Clicca per leggere un
+suggerimento
+
+</summary>
+
+</br>
+
+Copia sia il codice che crea `sintesi_hiv` sia quello che crea
+`tab_sintesi_hiv`: il report parte da zero e non trova gli oggetti
+creati nella sessione di R. Non copiare invece le righe che servivano
+solo a controllare il risultato, come `sintesi_hiv` da solo o
+`nrow(dati_clean)`.
+
+</br>
+
+</details>
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+````{verbatim}
+# Descrizione della coorte
+
+La tabella seguente riporta, per stato HIV, le principali
+caratteristiche della coorte, la mediana degli anticorpi e il tasso di
+diagnosi di COVID-19 per 100 anni-persona di follow-up.
+
+```{r}
+#| label: tbl-sintesi
+#| tbl-cap: "Caratteristiche della coorte e diagnosi di COVID-19 per stato HIV"
+sintesi_hiv <- dati_clean %>%
+  group_by(hiv_status) %>%
+  summarise(
+    n                  = n(),
+    perc_donne         = mean(sex == "F", na.rm = TRUE) * 100,
+    eta_mediana        = median(age, na.rm = TRUE),
+    perc_60            = mean(age >= 60, na.rm = TRUE) * 100,
+    perc_charlson_3piu = mean(chrls_index == "3-4" |
+                              chrls_index == "5+") * 100,
+    anticorpi_mediana  = median(anticorpi),
+    eventi             = sum(event),
+    anni_persona       = sum(fu_days) / 365.25,
+    tasso_100          = eventi / anni_persona * 100,
+    .groups = "drop") %>%
+  mutate(
+    perc_donne         = round(perc_donne, 1),
+    perc_60            = round(perc_60, 1),
+    perc_charlson_3piu = round(perc_charlson_3piu, 1),
+    anni_persona       = round(anni_persona, 1),
+    tasso_100          = round(tasso_100, 1))
+
+tab_sintesi_hiv <- sintesi_hiv %>%
+  flextable() %>%
+  set_header_labels(
+    hiv_status         = "Stato HIV",
+    n                  = "Persone",
+    perc_donne         = "% donne",
+    eta_mediana        = "Età mediana",
+    perc_60            = "% 60+",
+    perc_charlson_3piu = "% Charlson 3+",
+    anticorpi_mediana  = "Anticorpi mediani (BAU/mL)",
+    eventi             = "Eventi",
+    anni_persona       = "Anni-persona",
+    tasso_100          = "Tasso per 100 AP") %>%
+  autofit()
+
+tab_sintesi_hiv
+```
+````
+
+</br>
+
+</details>
+
+### Grafici
+
+Aggiungi una sezione `# Grafici` con tre grafici che hai costruito nel
+Modulo 8, ognuno dei quali risponde a una domanda sulla coorte:
+
+1.  **Quando si sono vaccinati?** L'istogramma mensile delle
+    vaccinazioni, colorato per stato HIV, con le date in italiano.
+2.  **Chi sono?** La heatmap della quota di persone con indice di
+    Charlson 3 o più, per classe d'età e stato HIV, con la percentuale e
+    il numero di persone su ogni tessera.
+3.  **Dove vivono?** La mappa dei vaccinati per 100.000 abitanti per
+    regione, con un pannello per ogni stato HIV.
+
+Per questa sezione avrai bisogno di riaprire lo script `plot.R`. Per ogni grafico:
+
+-   scrivi una frase che lo introduca;
+-   aggiungi una didascalia con l'opzione `#| fig-cap:`;
+-   metti il grafico **nel suo chunk**, insieme al codice che prepara i
+    dati per quel grafico.
+
+<details>
+
+<summary style="text-decoration: underline; color: darkgreen;">
+
+`r fontawesome::fa("lightbulb", fill = "gold")` Clicca per leggere un
+suggerimento
+
+</summary>
+
+</br>
+
+-   Il codice è nello script `plot.R`, nelle sezioni "Epicurva",
+    "Heatmap" e "Mappe" del Modulo 8.
+-   Per la mappa servono i due join del Modulo 8: prima la popolazione
+    da `regioni`, poi la geometria da `regioni_sf`.
+-   Ogni grafico ha bisogno di un oggetto creato prima: il vettore
+    `mesi` per l'istogramma mensile, il data frame `charlson_eta` per
+    la heatmap. Copia anche il codice che li crea, nello stesso chunk
+    del grafico.
+
+</br>
+
+</details>
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+````{verbatim}
+# Grafici
+
+La maggior parte delle vaccinazioni è avvenuta tra maggio e giugno
+2021, sia nelle persone con HIV sia nei controlli.
+
+```{r}
+#| fig-cap: "Vaccinati per mese di vaccinazione e stato HIV"
+mesi <- seq.Date(
+  from = floor_date(min(dati_clean$date_vacc), unit = "month"),
+  to   = ceiling_date(max(dati_clean$date_vacc), unit = "month"),
+  by   = "month")
+
+ggplot(data = dati_clean, mapping = aes(x = date_vacc, fill = hiv)) +
+  geom_histogram(breaks = mesi, closed = "left") +
+  scale_x_date(
+    date_breaks = "1 month",
+    labels = scales::label_date("%b\n%Y", locale = "it")) +
+  labs(x = "Mese di vaccinazione", y = "Vaccinati", fill = "Stato HIV")
+```
+
+La quota di persone con indice di Charlson 3 o più è bassa fino ai 59
+anni (1-2%) e sale al 5-7% dai 60 anni in su, in modo simile nelle
+persone con HIV e nei controlli.
+
+```{r}
+#| fig-cap: "Quota di persone con indice di Charlson 3 o più, per classe d'età e stato HIV"
+charlson_eta <- dati_clean %>%
+  filter(!is.na(age_cat)) %>%
+  group_by(age_cat, hiv) %>%
+  summarise(
+    n = n(),
+    quota_ch3 = mean(chrls_index %in% c("3-4", "5+")),
+    .groups = "drop")
+
+ggplot(data = charlson_eta, mapping = aes(x = hiv, y = age_cat, fill = quota_ch3)) +
+  geom_tile() +
+  geom_text(mapping = aes(label = paste0(scales::percent(quota_ch3, accuracy = 1),
+                                         "\n(n = ", n, ")"))) +
+  scale_fill_distiller(palette = "YlOrRd", direction = 1,
+                       labels = scales::label_percent()) +
+  labs(x = NULL, y = "Classe d'età", fill = "Charlson 3+")
+```
+
+Sia tra le persone con HIV sia tra i controlli, il numero di vaccinati
+per 100.000 abitanti è più alto nella regione C, dove è circa il doppio
+rispetto alle altre regioni.
+
+```{r}
+#| fig-cap: "Vaccinati della coorte per 100.000 abitanti, per regione e stato HIV"
+vacc_regione_hiv <- dati_clean %>%
+  count(region, hiv, name = "n_vaccinati")
+
+# primo join: la popolazione
+tassi_regione_hiv <- vacc_regione_hiv %>%
+  left_join(regioni, by = join_by(region == codice_regione)) %>%
+  mutate(tasso = n_vaccinati / popolazione * 100000)
+
+# secondo join: la geometria
+mappa_hiv <- regioni_sf %>%
+  left_join(tassi_regione_hiv, by = "region")
+
+ggplot(data = mappa_hiv) +
+  geom_sf(mapping = aes(fill = tasso)) +
+  geom_sf_text(mapping = aes(label = region)) +
+  facet_wrap(~ hiv) +
+  scale_fill_distiller(palette = "YlOrRd", direction = 1) +
+  theme_void() +
+  labs(fill = "Vaccinati per\n100.000 abitanti")
+```
+````
+
+</br>
+
+</details>
+
+::: {.callout-warning appearance="default" icon="false"}
+## Attenzione ai numeri scritti nel testo
+
+Le frasi che introducono i grafici qui sopra contengono mesi,
+percentuali e regioni scritti a mano: se arrivano dati nuovi, il
+grafico si aggiorna ma la frase no. Nel testo, i numeri che dipendono
+dai dati vanno sempre scritti con il codice inline.
+:::
+
+::: {.callout-tip appearance="default" icon="false"}
+## Approfondimento: le dimensioni dei grafici
+
+Se un grafico è troppo grande o troppo piccolo nel report, puoi
+cambiarne le dimensioni (in pollici) con le opzioni del chunk
+`#| fig-width: 6` e `#| fig-height: 4`.
+:::
+
+### Conclusioni
+
+Aggiungi infine una sezione `# Conclusioni` con due o tre frasi di
+commento ai risultati. Questa parte la scrivi tu, senza codice: è
+proprio il vantaggio del formato Word, che permette di rivedere e
+completare il testo anche dopo il render.
+
+Rifai il render un'ultima volta e controlla il report: non deve
+comparire codice, né messaggi o warning.
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+opts <- c(
+  "Riscrivere a mano tutti i numeri del testo",
+  answer = "Sostituire il file dei dati e rifare il render",
+  "Copiare di nuovo tabelle e grafici dallo script"
+)
+
+cat("Il mese prossimo arrivano i dati aggiornati, con lo stesso formato. Cosa devi fare per aggiornare il report?", longmcq(opts))
+```
+:::
+::::
+
+## Il report completo
+
+Ecco come potrebbe essere il tuo documento Quarto. Confrontalo con il
+tuo: il testo e le scelte di tabelle e grafici possono essere diversi,
+ma la struttura deve essere la stessa.
+
+<details>
+
+<summary style="text-decoration: underline; color: blue;">
+
+`r fontawesome::fa("check", fill = "blue")` Clicca per vedere il
+report completo
+
+</summary>
+
+</br>
+
+````{verbatim}
+---
+title: "Report sulla coorte vaccinale"
+subtitle: "Vaccinazione e diagnosi di COVID-19, 2021"
+author: "Nome Cognome (Istituto Superiore di Sanità)"
+date: today
+date-format: long
+lang: it
+format:
+  docx:
+    toc: true
+    number-sections: true
+execute:
+  echo: false
+  warning: false
+knitr:
+  opts_chunk:
+    message: false
+editor: source
+---
+
+```{r}
+#| include: false
+# Caricamento pacchetti
+pacman::p_load(
+  rio,          # importare i dati
+  here,         # percorsi relativi dei file
+  flextable,    # tabelle per i report
+  sf,           # dati spaziali
+  tidyverse     # gestione e visualizzazione dei dati
+)
+```
+
+```{r}
+#| include: false
+# Importazione dati
+dati_clean <- import(here("dati", "dati_clean.rds"))
+regioni_sf <- read_sf(here("dati", "shapefiles", "regioni.shp"))
+regioni    <- import(here("dati", "regioni.rds"))
+```
+
+# Introduzione
+
+Questo report descrive una coorte di persone vaccinate nel 2021,
+seguite per la diagnosi di COVID-19. La coorte comprende
+`r nrow(dati_clean)` soggetti: `r sum(dati_clean$hiv == "Con HIV")`
+persone con HIV e `r sum(dati_clean$hiv == "Senza HIV")` senza HIV.
+Durante il follow-up, `r sum(dati_clean$event)` soggetti hanno avuto
+la diagnosi di COVID-19.
+
+# Descrizione della coorte
+
+La tabella seguente riporta, per stato HIV, le principali
+caratteristiche della coorte, la mediana degli anticorpi e il tasso di
+diagnosi di COVID-19 per 100 anni-persona di follow-up.
+
+```{r}
+#| label: tbl-sintesi
+#| tbl-cap: "Caratteristiche della coorte e diagnosi di COVID-19 per stato HIV"
+sintesi_hiv <- dati_clean %>%
+  group_by(hiv_status) %>%
+  summarise(
+    n                  = n(),
+    perc_donne         = mean(sex == "F", na.rm = TRUE) * 100,
+    eta_mediana        = median(age, na.rm = TRUE),
+    perc_60            = mean(age >= 60, na.rm = TRUE) * 100,
+    perc_charlson_3piu = mean(chrls_index == "3-4" |
+                              chrls_index == "5+") * 100,
+    anticorpi_mediana  = median(anticorpi),
+    eventi             = sum(event),
+    anni_persona       = sum(fu_days) / 365.25,
+    tasso_100          = eventi / anni_persona * 100,
+    .groups = "drop") %>%
+  mutate(
+    perc_donne         = round(perc_donne, 1),
+    perc_60            = round(perc_60, 1),
+    perc_charlson_3piu = round(perc_charlson_3piu, 1),
+    anni_persona       = round(anni_persona, 1),
+    tasso_100          = round(tasso_100, 1))
+
+tab_sintesi_hiv <- sintesi_hiv %>%
+  flextable() %>%
+  set_header_labels(
+    hiv_status         = "Stato HIV",
+    n                  = "Persone",
+    perc_donne         = "% donne",
+    eta_mediana        = "Età mediana",
+    perc_60            = "% 60+",
+    perc_charlson_3piu = "% Charlson 3+",
+    anticorpi_mediana  = "Anticorpi mediani (BAU/mL)",
+    eventi             = "Eventi",
+    anni_persona       = "Anni-persona",
+    tasso_100          = "Tasso per 100 AP") %>%
+  autofit()
+
+tab_sintesi_hiv
+```
+
+# Grafici
+
+La maggior parte delle vaccinazioni è avvenuta tra maggio e giugno
+2021, sia nelle persone con HIV sia nei controlli.
+
+```{r}
+#| fig-cap: "Vaccinati per mese di vaccinazione e stato HIV"
+mesi <- seq.Date(
+  from = floor_date(min(dati_clean$date_vacc), unit = "month"),
+  to   = ceiling_date(max(dati_clean$date_vacc), unit = "month"),
+  by   = "month")
+
+ggplot(data = dati_clean, mapping = aes(x = date_vacc, fill = hiv)) +
+  geom_histogram(breaks = mesi, closed = "left") +
+  scale_x_date(
+    date_breaks = "1 month",
+    labels = scales::label_date("%b\n%Y", locale = "it")) +
+  labs(x = "Mese di vaccinazione", y = "Vaccinati", fill = "Stato HIV")
+```
+
+La quota di persone con indice di Charlson 3 o più è bassa fino ai 59
+anni (1-2%) e sale al 5-7% dai 60 anni in su, in modo simile nelle
+persone con HIV e nei controlli.
+
+```{r}
+#| fig-cap: "Quota di persone con indice di Charlson 3 o più, per classe d'età e stato HIV"
+charlson_eta <- dati_clean %>%
+  filter(!is.na(age_cat)) %>%
+  group_by(age_cat, hiv) %>%
+  summarise(
+    n = n(),
+    quota_ch3 = mean(chrls_index %in% c("3-4", "5+")),
+    .groups = "drop")
+
+ggplot(data = charlson_eta, mapping = aes(x = hiv, y = age_cat, fill = quota_ch3)) +
+  geom_tile() +
+  geom_text(mapping = aes(label = paste0(scales::percent(quota_ch3, accuracy = 1),
+                                         "\n(n = ", n, ")"))) +
+  scale_fill_distiller(palette = "YlOrRd", direction = 1,
+                       labels = scales::label_percent()) +
+  labs(x = NULL, y = "Classe d'età", fill = "Charlson 3+")
+```
+
+Sia tra le persone con HIV sia tra i controlli, il numero di vaccinati
+per 100.000 abitanti è più alto nella regione C, dove è circa il doppio
+rispetto alle altre regioni.
+
+```{r}
+#| fig-cap: "Vaccinati della coorte per 100.000 abitanti, per regione e stato HIV"
+vacc_regione_hiv <- dati_clean %>%
+  count(region, hiv, name = "n_vaccinati")
+
+# primo join: la popolazione
+tassi_regione_hiv <- vacc_regione_hiv %>%
+  left_join(regioni, by = join_by(region == codice_regione)) %>%
+  mutate(tasso = n_vaccinati / popolazione * 100000)
+
+# secondo join: la geometria
+mappa_hiv <- regioni_sf %>%
+  left_join(tassi_regione_hiv, by = "region")
+
+ggplot(data = mappa_hiv) +
+  geom_sf(mapping = aes(fill = tasso)) +
+  geom_sf_text(mapping = aes(label = region)) +
+  facet_wrap(~ hiv) +
+  scale_fill_distiller(palette = "YlOrRd", direction = 1) +
+  theme_void() +
+  labs(fill = "Vaccinati per\n100.000 abitanti")
+```
+
+# Conclusioni
+
+Da scrivere a cura dell'autore del report.
+````
+
+</br>
+
+</details>
+
+Salva il documento e avvisa il docente che hai finito.
+
+## Approfondimenti
+
+Se hai finito in anticipo, prova questi esercizi.
+
+### Un modello Word con lo stile del tuo ufficio
+
+Quarto crea il file Word con caratteri e colori predefiniti. Se vuoi
+che i report abbiano lo stile del tuo ufficio (carattere, colori dei
+titoli, margini), puoi dare a Quarto un **documento Word di
+riferimento** da cui copiare gli stili:
+
+1.  nel riquadro *Terminal* di RStudio, esegui il comando
+    `quarto pandoc -o modello.docx --print-default-data-file reference.docx`:
+    crea il file `modello.docx` nella cartella del progetto;
+2.  apri `modello.docx` in Word e modifica gli **stili** (non il
+    testo): per esempio, con il tasto destro su "Titolo 1" nella barra
+    degli stili, *Modifica…*. Salva e chiudi;
+3.  sposta `modello.docx` nella stessa cartella del documento Quarto e
+    aggiungi nell'intestazione YAML, sotto `docx:`, la riga
+    `reference-doc: modello.docx`;
+4.  rifai il render.
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```yaml
+format:
+  docx:
+    toc: true
+    number-sections: true
+    reference-doc: modello.docx
+```
+
+</br>
+
+</details>
+
+### Lo stesso report in HTML
+
+Prova a creare il report anche in formato HTML. Aggiungi `html` ai
+formati nell'intestazione YAML, con queste opzioni:
+
+-   `embed-resources: true`, per avere un **unico file** HTML (con i
+    grafici dentro) da inviare via email;
+-   `code-fold: true`, per mostrare il codice "piegato": il lettore lo
+    vede solo se clicca su *Code*. Perché funzioni, nel blocco
+    `execute` imposta `echo: true`.
+
+Per scegliere in quale formato fare il render, usa la freccia accanto
+al pulsante **Render**.
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```yaml
+format:
+  docx:
+    toc: true
+    number-sections: true
+  html:
+    toc: true
+    embed-resources: true
+    code-fold: true
+execute:
+  echo: true
+  warning: false
+```
+
+Con `echo: true` il codice compare anche nel report Word: per il Word
+conviene quindi tornare a `echo: false`.
+
+</br>
+
+</details>
+
+## Riepilogo
+
+In questo modulo hai imparato a:
+
+-   creare un documento Quarto (`.qmd`) e trasformarlo in un report con
+    il pulsante **Render** (**Ctrl + Shift + K**);
+-   ricordare che il render avviene in una sessione di R nuova: il
+    documento deve contenere tutto il codice, dal caricamento dei
+    pacchetti all'importazione dei dati, con i percorsi scritti con
+    `here()`;
+-   modificare l'intestazione YAML: titolo, sottotitolo, autore, data
+    (`date: today`, `lang: it`), formato (`format: docx`) e le sue
+    opzioni (`toc`, `number-sections`);
+-   inserire i chunk (**Ctrl + Alt + I**) e controllarli con le opzioni
+    `#|` (`echo`, `eval`, `include`, `warning`, `message`, `fig-cap`,
+    `tbl-cap`), anche per tutto il documento con `execute`;
+-   scrivere il testo con la sintassi Markdown (titoli, grassetto,
+    corsivo, elenchi);
+-   inserire nel testo valori calcolati da R con il codice inline, come
+    `` `r knitr::inline_expr("nrow(dati_clean)")` ``;
+-   costruire un report riutilizzando il codice dei moduli precedenti,
+    da aggiornare con un clic quando arrivano dati nuovi.
+
+## Risorse aggiuntive
+
+| Argomento | Risorsa |
+|---------------------------------------|---------------------------------|
+| Primi passi con Quarto in RStudio | Guida ufficiale di Quarto, "Tutorial: Hello, Quarto": <https://quarto.org/docs/get-started/hello/rstudio.html> |
+| Report in Word | Guida ufficiale di Quarto, "Word Basics": <https://quarto.org/docs/output-formats/ms-word.html> |
+| Opzioni dei chunk | Guida ufficiale di Quarto, "Execution Options": <https://quarto.org/docs/computations/execution-options.html> |
+| Sintassi Markdown | Guida ufficiale di Quarto, "Markdown Basics": <https://quarto.org/docs/authoring/markdown-basics.html> |
+| Report con R | Epi R Handbook, cap. 40 "Reports with R Markdown": <https://epirhandbook.com/en/new_pages/rmarkdown.html> |
+
+<!-- Sezione Autori in sospeso: da definire
+
+**Autori**
+
+Autori originali: Applied Epi (<https://appliedepi.org>), corso
+"Introduction to R for Applied Epidemiology", esercizio "R Markdown"\
+Fonte dei dati: dati di una coorte vaccinale, modificati a scopo
+didattico\
+Adattato da: Nome Cognome (Istituto Superiore di Sanità)
+-->

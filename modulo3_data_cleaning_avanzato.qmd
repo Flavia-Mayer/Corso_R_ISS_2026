@@ -1,0 +1,2040 @@
+---
+output: html_document
+editor_options:
+  chunk_output_type: console
+execute:
+  warning: false
+  error: false
+format:
+  html:
+    css: webex.css
+    include-after-body: webex.js
+    df-print: kable
+    toc: true
+    toc-depth: 4
+    toc-expand: 1
+editor:
+  markdown:
+    wrap: 72
+title: |
+  ![](immagini/logo_dmi.png){width=3in}
+---
+
+```{r}
+#| include: false
+pacman::p_load(
+  rio,
+  here,
+  skimr,
+  janitor,
+  lubridate,
+  epikit,
+  gtsummary,
+  tidyverse,
+  webexercises
+)
+
+# dataset grezzo, usato solo negli approfondimenti
+dati_raw <- import("materiali_corso_R/dati/dataset_esercitazione_raw.csv")
+```
+
+# **Corso introduttivo al software statistico R**
+
+# Modulo 03 Pulizia dei dati: approfondimento
+
+## Obiettivi del modulo
+
+-   Usare gli operatori logici per costruire condizioni sulle righe
+-   Ricodificare le modalità delle variabili categoriche con `ifelse()`
+    e `case_when()`
+-   Dare etichette leggibili a una variabile con `factor()`
+-   Creare nuove variabili: classi di età, durata del follow-up,
+    variabile evento
+-   Filtrare le righe in base a criteri logici, gestendo i valori
+    mancanti
+-   Riordinare le variabili e salvare i dati puliti in formato RDS
+
+## Formato dell'esercizio
+
+<!-- Il paragrafo sotto è fisso: -->
+
+Questo esercizio è progettato per essere una guida e per aiutarti a
+completarlo in autonomia. Ti consigliamo fortemente di provare a
+eseguire il codice prima di guardare le soluzioni. Per aiutarti, abbiamo
+incluso in alcuni punti dei suggerimenti che possono indirizzarti nella
+direzione giusta. Li troverai così:
+
+```{=html}
+<!-- ISTRUZIONI: Questo blocco "Suggerimento" va inserito ogni volta 
+     che vuoi dare un aiuto parziale allo studente senza svelare 
+     subito la soluzione (es. il nome di una funzione da usare, o un 
+     argomento a cui prestare attenzione). Copia l'intero blocco 
+     <details>...</details> e modifica solo il testo dopo </br>. -->
+```
+
+<details>
+
+<summary style="text-decoration: underline; color: darkgreen;">
+
+`r fontawesome::fa("lightbulb", fill = "gold")` Clicca per leggere un
+suggerimento
+
+</summary>
+
+</br>
+
+Questo è un suggerimento.
+
+</br>
+
+</details>
+
+Le soluzioni, invece, avranno questo aspetto:
+
+```{=html}
+<!-- ISTRUZIONI: Questo blocco "Soluzione" va inserito alla fine di 
+     ogni esercizio (o sotto-punto) e deve contenere codice R 
+     eseguibile e commentato. Copia l'intero blocco 
+     <details>...</details> e sostituisci il codice di esempio. Se la 
+     soluzione richiede più passaggi, aggiungi commenti # nel codice 
+     per spiegare ogni passaggio. Ricorda: niente etichette (label) 
+     nei chunk, come indicato nelle istruzioni generali. -->
+```
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+print("Questo è un esempio di soluzione")
+
+```
+
+</br>
+
+</details>
+
+Durante l'esercizio troverai anche domande a risposta multipla, che
+servono a verificare se stai seguendo correttamente lo svolgimento. Le
+domande saranno simili a questa:
+
+```{=html}
+<!-- ISTRUZIONI: Questo blocco "Domanda" usa il pacchetto 
+     `{webexercises}` per creare quiz a risposta multipla 
+     auto-correttivi. Copia l'intero blocco ::: {.callout-note}...::: 
+     e:
+       - scrivi le opzioni di risposta nel vettore "opts"
+       - indica la risposta corretta con answer = "..."
+       - scrivi il testo della domanda dentro cat("Domanda: ...")
+     Inserisci una domanda ogni volta che vuoi far verificare allo 
+     studente di aver capito un concetto chiave prima di proseguire. -->
+```
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+pacman::p_load(webexercises)
+
+opts <- c(
+  "2",
+  "5",
+  answer = "4"
+)
+
+
+cat("Domanda di esempio: quanto fa 2 + 2?", longmcq(opts))
+
+```
+:::
+::::
+
+Lungo il modulo troverai anche due tipi di riquadri colorati. I riquadri
+**gialli** segnalano errori frequenti o punti in cui R si comporta in
+modo inatteso: leggili sempre, perché possono farti risparmiare tempo.
+
+```{=html}
+<!-- ISTRUZIONI: Il box giallo "Attenzione a …" va usato per avvisi
+     importanti: errori comuni, comportamenti di R che possono
+     sorprendere, passaggi da non saltare. Il titolo inizia sempre con
+     "Attenzione a" (es. "Attenzione ai nomi con spazi"). Copia
+     l'intero blocco ::: {.callout-warning ...} ... ::: e modifica
+     solo titolo e testo. -->
+```
+
+::: {.callout-warning appearance="default" icon="false"}
+## Attenzione a …
+
+Questo è un esempio di riquadro di attenzione.
+:::
+
+I riquadri **verdi** contengono invece approfondimenti facoltativi, per
+chi vuole andare un po' oltre: puoi saltarli senza perdere il filo
+dell'esercizio e tornarci in un secondo momento.
+
+```{=html}
+<!-- ISTRUZIONI: Il box verde "Approfondimento: …" va usato per
+     contenuti facoltativi: funzioni alternative, scorciatoie, casi
+     più avanzati. Lo studente deve poter completare l'esercizio anche
+     senza leggerlo. Il titolo inizia sempre con "Approfondimento:"
+     (es. "Approfondimento: gestire le date in R"). Copia l'intero
+     blocco ::: {.callout-tip ...} ... ::: e modifica solo titolo e
+     testo. -->
+```
+
+::: {.callout-tip appearance="default" icon="false"}
+## Approfondimento: …
+
+Questo è un esempio di riquadro di approfondimento.
+:::
+
+Ti consigliamo di provare comunque a rispondere e a eseguire il codice
+da solo prima di consultare suggerimenti e soluzioni: è così che si
+impara davvero a usare R.
+
+## Preparazione
+
+Prima di iniziare, apri il progetto R del corso e, dalla cartella
+`script`, apri lo script `pulizia_dati.R`, su cui hai lavorato ieri nei
+Moduli 1 e 2. Per ricreare gli oggetti di ieri, esegui tutto il codice
+che sta sopra l'area di prova: metti il cursore sulla riga del titolo
+"Area di prova" e premi **Ctrl + Alt + B** (**Cmd + Option + B** su
+Mac). R carica i pacchetti, importa i dati grezzi e ricrea `dati`, il
+dataset pulito nel Modulo 2.
+
+Se lo script dà errori che non riesci a risolvere, nella cartella
+`script/backup` trovi la versione corretta di `backup_pulizia_dati.R`: contiene anche
+le soluzioni di oggi, quindi copia nel tuo script solo la parte dei
+Moduli 1 e 2.
+
+Poi, **sopra** la sezione "Area di prova", crea una nuova sezione
+chiamata "Modulo 3 - Pulizia dei dati: approfondimento" con la
+combinazione di tasti **Ctrl + Shift + R** (**Cmd + Shift + R** su
+Mac): è qui che scriverai il codice dell'esercitazione di oggi. Con
+questo modulo lo script `pulizia_dati.R` sarà completo. Ricordati di
+salvare spesso il lavoro (**Ctrl + S**, oppure **Cmd + S** su Mac).
+
+## Iniziamo!
+
+`r fontawesome::fa("play", fill = "darkgreen")` **Da qui comincia
+l'esercitazione.**
+
+## Il punto di partenza
+
+### I dati
+
+Ripartiamo da `dati`, il dataset che hai pulito ieri nel Modulo 2 e che
+hai appena ricreato eseguendo lo script. Controlla nel pannello
+**Environment** che ci sia e, nell'area di prova, controlla con
+`class()` la classe della variabile `date_vacc`.
+
+```{r}
+#| include: false
+# solo per generare l'HTML: nel corso dati viene ricreato eseguendo
+# pulizia_dati.R (Moduli 1 e 2). Qui si esegue la catena di pulizia del
+# Modulo 2 presa da backup_pulizia_dati.R (dalla prima sezione
+# "Pulizia dei dati" alla prima "Verifica"), cosi' resta sempre allineata
+righe_backup <- readLines("materiali_corso_R/script/backup/backup_pulizia_dati.R",
+                          encoding = "UTF-8")
+inizio <- grep("^# Pulizia dei dati", righe_backup)[1]
+fine   <- grep("^# Verifica", righe_backup)[1] - 1
+eval(parse(text = righe_backup[inizio:fine]))
+```
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+opts <- c(
+  "character, perché le date vanno sempre riconvertite",
+  answer = "Date, perché nel Modulo 2 l'hai convertita con le funzioni di {lubridate}",
+  "numeric"
+)
+
+cat("Qual è la classe di date_vacc?", longmcq(opts))
+```
+:::
+::::
+
+### L'area di prova
+
+Userai di nuovo l'area di prova che hai creato nel Modulo 2, in fondo
+allo script. Le sezioni che creerai più avanti vanno inserite sopra
+l'area di prova, così che resti sempre l'ultima sezione dello script.
+
+In questo modulo la userai spesso: prima di aggiungere un comando alla
+catena di pulizia, provalo qui e guarda il risultato. Solo quando il
+risultato è quello che ti aspetti, sposta il comando nella catena.
+
+### Cosa resta da sistemare
+
+Nel Modulo 2 hai standardizzato i nomi delle variabili, rimosso le righe
+duplicate, codificato i valori mancanti come `NA` e convertito età e
+date nella classe corretta. Restano però alcuni problemi. Esegui questi
+comandi nell'area di prova e guarda i risultati nella console:
+
+```{r}
+#| eval: false
+dati %>% tabyl(region)
+dati %>% tabyl(sex)
+dati %>% tabyl(age_group)
+dati %>% tabyl(hiv_status)
+```
+
+Troverai:
+
+-   modalità scritte in modi diversi:
+    -   variabile `region`: `"a"` e `"Region A"` invece di `"A"`,
+        `"Region D"` invece di `"D"`, `"f"` invece di `"F"`;
+    -   variabile `sex`: `"m"` invece di `"M"`; `"f"`, `"Female"` e
+        `"FEMALE"` invece di `"F"`;
+    -   variabile `age_group`: `"60 +"` invece di `"60+"`;
+    -   variabile `hiv_status`: `"Yes"` invece di `"1"`;
+-   le regioni E ed F, che dovranno essere eliminate perché non fanno
+    parte dello studio.
+
+In questo modulo sistemerai questi problemi, creerai alcune nuove
+variabili utili per le analisi e salverai il dataset finale.
+
+Costruirai una nuova catena di pulizia che parte da `dati` appena
+importati e crea un nuovo oggetto, `dati_clean`.
+
+## Gli operatori logici
+
+Molte delle operazioni di questo modulo si basano su **condizioni
+logiche**: confronti che, per ogni riga, restituiscono `TRUE` (vero) o
+`FALSE` (falso). Non serve impararli a memoria, ma è utile averli sotto
+mano.
+
+### Operatori di confronto
+
+| Significato | Operatore | Esempio | Risultato |
+|-------------------|------------------|------------------|------------------|
+| Uguale a | `==` | `"A" == "a"` | `FALSE` (R distingue maiuscole e minuscole) |
+| Diverso da | `!=` | `2 != 0` | `TRUE` |
+| Maggiore di | `>` | `4 > 2` | `TRUE` |
+| Minore di | `<` | `4 < 2` | `FALSE` |
+| Maggiore o uguale a | `>=` | `6 >= 4` | `TRUE` |
+| Minore o uguale a | `<=` | `6 <= 4` | `FALSE` |
+| Il valore è mancante | `is.na()` | `is.na(7)` | `FALSE` |
+| Il valore non è mancante | `!is.na()` | `!is.na(7)` | `TRUE` |
+| Il valore è in un elenco | `%in%` | `"B" %in% c("A", "B")` | `TRUE` |
+
+Attenzione alla differenza tra `==` e `=`:
+
+-   `==` (doppio uguale) **chiede** se il valore a sinistra è uguale a
+    quello a destra, e la risposta è `TRUE` o `FALSE`: `age == 60`
+    chiede "in questa riga l'età è uguale a 60?";
+-   `=` (uguale singolo) **assegna** un valore, per esempio a un
+    argomento di una funzione: in `range(age, na.rm = TRUE)` imposta
+    l'argomento `na.rm` a `TRUE`.
+
+### Operatori logici
+
+Gli operatori logici collegano più condizioni:
+
+| Significato | Operatore | Esempio |
+|----------------------------|------------------------|--------------------|
+| E (entrambe vere) | `&` | `age >= 60 & sex == "F"` |
+| O (almeno una vera) | `|` (barra verticale) | `region == "E" | region == "F"` |
+| Raggruppare le condizioni | `( )` | `(age >= 60 | hiv_status == 1) & sex == "F"` |
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+opts <- c(
+  "TRUE",
+  answer = "FALSE",
+  "Un errore"
+)
+
+cat("Cosa restituisce \"F\" == \"f\"?", longmcq(opts))
+```
+:::
+::::
+
+## Creare una variabile con `ifelse()`
+
+### La variabile evento
+
+Per le analisi della coorte ci servirà una variabile che indichi se il
+soggetto ha avuto l'evento (la diagnosi di COVID-19) durante il
+follow-up: `1` se sì, `0` se no. Come hai visto nel Modulo 2, in
+`date_event` il valore `NA` significa proprio che l'evento non c'è
+stato.
+
+Quando la regola ha solo due esiti possibili si usa la funzione
+`ifelse()`, dentro `mutate()`. La sintassi è:
+
+```{r}
+#| eval: false
+ifelse(CONDIZIONE, VALORE SE VERA, VALORE SE FALSA)
+```
+
+Per ogni riga, `ifelse()` controlla la condizione: se è vera restituisce
+il primo valore, altrimenti il secondo. Per la variabile evento la
+regola è: "se `date_event` è mancante, allora `0`, altrimenti `1`".
+
+### Aggiungi alla catena di pulizia
+
+Inizia la nuova catena: parti da `dati`, aggiungi un `mutate()` che crei
+la variabile `event` con `ifelse()` e salva il risultato in
+`dati_clean`. Poi controlla il risultato con `tabyl()` nell'area di
+prova.
+
+<details>
+
+<summary style="text-decoration: underline; color: darkgreen;">
+
+`r fontawesome::fa("lightbulb", fill = "gold")` Clicca per leggere un
+suggerimento
+
+</summary>
+
+</br>
+
+La condizione da usare dentro `ifelse()` è `is.na(date_event)`.
+
+</br>
+
+</details>
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+La catena di pulizia inizia così:
+
+```{r}
+#| echo: true
+#| eval: false
+
+dati_clean <- dati %>%
+  # variabile evento: 1 se c'è una data di evento, 0 altrimenti
+  mutate(event = ifelse(is.na(date_event), 0, 1))
+```
+
+</br>
+
+</details>
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+opts <- c(
+  "Circa il 79%",
+  answer = "Circa il 21%",
+  "Circa il 50%"
+)
+
+cat("Con dati_clean %>% tabyl(event), quale percentuale di soggetti ha avuto l'evento?", longmcq(opts))
+```
+:::
+::::
+
+::: {.callout-tip appearance="default" icon="false"}
+## Approfondimento: altre funzioni simili
+
+`if_else()` del pacchetto `{dplyr}` funziona come `ifelse()` ma è più
+rigorosa sulle classi dei valori: è particolarmente utile con le date.
+`replace()` è una scorciatoia per sostituire i valori che soddisfano una
+condizione. Puoi leggerne di più nell'Epi R Handbook (vedi le Risorse
+aggiuntive).
+:::
+
+## Ricodificare con `case_when()`
+
+### Come funziona `case_when()`
+
+Quando le regole sono più di due, invece di scrivere tanti `ifelse()`
+uno dentro l'altro si usa `case_when()` del pacchetto `{dplyr}`. Ecco
+come ricodificare la variabile `sex`:
+
+```{r}
+#| eval: false
+mutate(sex = case_when(
+  sex == "m"                          ~ "M",
+  sex %in% c("f", "Female", "FEMALE") ~ "F",
+  TRUE                                ~ sex))
+```
+
+Vediamo come è fatto il comando:
+
+-   `case_when()` si scrive dentro `mutate()`: a sinistra dell'uguale
+    c'è la variabile da creare o modificare (`sex`), a destra
+    `case_when()`;
+-   dentro `case_when()` ci sono più **regole**, separate da virgole e
+    scritte una per riga;
+-   ogni regola ha una **condizione logica** a sinistra della tilde
+    (`~`) e il **valore da assegnare** a destra;
+-   su Windows con tastiera italiana la tilde si scrive tenendo premuto
+    **Alt** e digitando **126** sul tastierino numerico; su Mac con
+    **Alt + 5**.
+
+Come vengono assegnati i valori:
+
+-   per ogni riga, `case_when()` controlla le regole **dall'alto verso
+    il basso** e applica la **prima** la cui condizione è vera; le
+    regole successive non vengono più guardate. Per questo l'ordine
+    delle regole è importante: di solito si va dalle più specifiche alle
+    più generali;
+-   se nessuna condizione è vera, la riga riceve `NA`. Per evitarlo si
+    aggiunge come ultima regola `TRUE ~ ...`, che vale per "tutti gli
+    altri casi": qui `TRUE ~ sex` lascia il valore com'era;
+-   tutti i valori a destra della tilde devono essere della **stessa
+    classe** (tutti testo, oppure tutti numeri, ecc.).
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+opts <- c(
+  "Mantiene il valore originale",
+  answer = "Riceve NA",
+  "Il comando dà errore"
+)
+
+cat("In case_when(), cosa succede a una riga che non soddisfa nessuna condizione, se manca l'ultima regola TRUE ~ ...?", longmcq(opts))
+```
+:::
+::::
+
+### Ricodificare il sesso
+
+Ora tocca a te: sistemerai le variabili una alla volta, provando ogni
+comando nell'area di prova prima di aggiungerlo alla catena.
+
+Il comando visto sopra sistema già la variabile `sex`. Provalo nell'area
+di prova e guarda il risultato con `tabyl()`:
+
+```{r}
+#| eval: false
+dati_clean %>%
+  mutate(sex = case_when(
+    sex == "m"                          ~ "M",
+    sex %in% c("f", "Female", "FEMALE") ~ "F",
+    TRUE                                ~ sex)) %>%
+  tabyl(sex)
+```
+
+Nella tabella dovrebbero comparire solo `"F"`, `"M"` e `NA`. Il comando
+non usa `<-`, quindi non modifica `dati_clean`: per rendere definitiva
+la modifica, aggiungi alla catena di pulizia un `mutate()` con la
+ricodifica di `sex`.
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+Aggiungi in fondo alla catena (ricorda il `%>%` alla fine della riga
+precedente):
+
+```{r}
+#| echo: true
+#| eval: false
+
+  mutate(
+    # ricodifica del sesso
+    sex = case_when(
+      sex == "m"                          ~ "M",
+      sex %in% c("f", "Female", "FEMALE") ~ "F",
+      TRUE                                ~ sex)
+  )
+```
+
+</br>
+
+</details>
+
+### Ricodificare la regione
+
+Usa `case_when()` per fare in modo che `region` contenga solo `"A"`,
+`"B"`, `"C"`, `"D"`, `"E"` e `"F"`. Scrivi il comando nell'area di
+prova, come hai fatto per `sex`, e controlla il risultato con
+`tabyl(region)`.
+
+<details>
+
+<summary style="text-decoration: underline; color: darkgreen;">
+
+`r fontawesome::fa("lightbulb", fill = "gold")` Clicca per leggere un
+suggerimento
+
+</summary>
+
+</br>
+
+Con `%in%` puoi raggruppare in una sola regola più valori da
+ricodificare nello stesso modo, per esempio
+`region %in% c("a", "Region A") ~ "A"`.
+
+</br>
+
+</details>
+
+Quando il risultato è corretto, aggiungi la ricodifica di `region` nella
+catena, **dentro lo stesso `mutate()`** di `sex`, dopo una virgola: un
+solo `mutate()` può modificare più variabili.
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+Il `mutate()` delle ricodifiche ora dovrebbe essere così:
+
+```{r}
+#| echo: true
+#| eval: false
+
+  mutate(
+    # ricodifica del sesso
+    sex = case_when(
+      sex == "m"                          ~ "M",
+      sex %in% c("f", "Female", "FEMALE") ~ "F",
+      TRUE                                ~ sex),
+    # ricodifica della regione
+    region = case_when(
+      region %in% c("a", "Region A") ~ "A",
+      region == "Region D"           ~ "D",
+      region == "f"                  ~ "F",
+      TRUE                           ~ region)
+  )
+```
+
+</br>
+
+</details>
+
+### Ricodificare lo stato HIV
+
+Usa `case_when()` per fare in modo che `hiv_status` contenga solo i
+**numeri** `0` e `1`. Puoi ricodificare e convertire in numero in un
+solo passaggio: se a destra della tilde scrivi dei numeri (senza
+virgolette), la nuova variabile sarà numerica. Prova il comando
+nell'area di prova e controlla il risultato con `tabyl(hiv_status)`.
+
+<details>
+
+<summary style="text-decoration: underline; color: darkgreen;">
+
+`r fontawesome::fa("lightbulb", fill = "gold")` Clicca per leggere un
+suggerimento
+
+</summary>
+
+</br>
+
+Qui non serve la regola `TRUE ~ ...`: i valori che non sono `"0"`, `"1"`
+o `"Yes"` sono solo gli `NA`, e devono restare `NA`.
+
+</br>
+
+</details>
+
+Quando il risultato è corretto, aggiungi la ricodifica di `hiv_status`
+nello stesso `mutate()`, dopo una virgola. Poi riesegui la catena e
+controlla nell'area di prova la classe della variabile con
+`class(dati_clean$hiv_status)`.
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+Il `mutate()` delle ricodifiche ora dovrebbe essere così:
+
+```{r}
+#| echo: true
+#| eval: false
+
+  mutate(
+    # ricodifica del sesso
+    sex = case_when(
+      sex == "m"                          ~ "M",
+      sex %in% c("f", "Female", "FEMALE") ~ "F",
+      TRUE                                ~ sex),
+    # ricodifica della regione
+    region = case_when(
+      region %in% c("a", "Region A") ~ "A",
+      region == "Region D"           ~ "D",
+      region == "f"                  ~ "F",
+      TRUE                           ~ region),
+    # ricodifica dello stato HIV in numero (0 = assenza, 1 = presenza)
+    hiv_status = case_when(
+      hiv_status %in% c("1", "Yes") ~ 1,
+      hiv_status == "0"             ~ 0)
+  )
+```
+
+</br>
+
+</details>
+
+### Le etichette dello stato HIV: `factor()`
+
+Con i numeri `0` e `1` è facile fare calcoli e selezioni (per esempio
+tenere solo le persone con `hiv_status == 1`), ma in una tabella o in un
+grafico `0` e `1` non dicono nulla a chi legge. Per questo conviene
+avere anche una variabile con delle **etichette**.
+
+La funzione `factor()` trasforma una variabile in un **fattore**: una
+variabile categorica che ha un elenco fisso di categorie, in un ordine
+preciso, ciascuna con la sua etichetta. La sintassi è:
+
+```{r}
+#| eval: false
+factor(VARIABILE,
+       levels = c(VALORE_1, VALORE_2),
+       labels = c("ETICHETTA_1", "ETICHETTA_2"))
+```
+
+-   `levels =` elenca i valori della variabile, nell'ordine in cui
+    vogliamo le categorie in tabelle e grafici;
+-   `labels =` elenca le etichette da dare a quei valori, **nello stesso
+    ordine**: il primo valore prende la prima etichetta, il secondo la
+    seconda.
+
+I valori che non compaiono in `levels` diventano `NA`.
+
+Nell'area di prova crea una nuova variabile `hiv`, che sia un fattore
+pari a `"Senza HIV"` quando `hiv_status` è `0` e `"Con HIV"` quando è
+`1`. Controlla il risultato con `tabyl(hiv)`. Teniamo anche
+`hiv_status`: con i numeri le selezioni sono più semplici. Quando il
+nuovo fattore `hiv` è creato correttamente, aggiungilo all'interno dello
+stesso `mutate()`, dopo una virgola e dopo la ricodifica di
+`hiv_status`.
+
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+Il `mutate()` delle ricodifiche ora dovrebbe essere così:
+
+```{r}
+#| echo: true
+#| eval: false
+
+  mutate(
+    # ricodifica del sesso
+    sex = case_when(
+      sex == "m"                          ~ "M",
+      sex %in% c("f", "Female", "FEMALE") ~ "F",
+      TRUE                                ~ sex),
+    # ricodifica della regione
+    region = case_when(
+      region %in% c("a", "Region A") ~ "A",
+      region == "Region D"           ~ "D",
+      region == "f"                  ~ "F",
+      TRUE                           ~ region),
+    # ricodifica dello stato HIV in numero (0 = assenza, 1 = presenza)
+    hiv_status = case_when(
+      hiv_status %in% c("1", "Yes") ~ 1,
+      hiv_status == "0"             ~ 0),
+    # stato HIV con le etichette, per tabelle e grafici
+    hiv = factor(hiv_status,
+                 levels = c(0, 1),
+                 labels = c("Senza HIV", "Con HIV"))
+  )
+```
+
+</br>
+
+</details>
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+opts <- c(
+  "Diventa \"Senza HIV\", la prima etichetta",
+  "Resta 2",
+  answer = "Diventa NA"
+)
+
+cat("Se hiv_status contenesse anche il valore 2, cosa diventerebbe in hiv?", longmcq(opts))
+```
+:::
+::::
+
+
+::: {.callout-warning appearance="default" icon="false"}
+## Attenzione all'ordine dentro `mutate()`
+
+Dentro `mutate()` le modifiche vengono fatte una dopo l'altra,
+nell'ordine in cui sono scritte. `hiv` va scritta **dopo** la ricodifica
+di `hiv_status`: se la mettessi prima, `factor()` lavorerebbe sui valori
+originali, che sono ancora testo (`"0"`, `"1"` e `"Yes"`), e `"Yes"`
+diventerebbe `NA`.
+:::
+
+### Togliere gli spazi: `str_remove_all()`
+
+In `age_group` il problema è diverso: `"60 +"` è uguale a `"60+"`, ma ha
+uno spazio di troppo. Invece di elencare i valori sbagliati con
+`case_when()`, puoi usare una funzione del pacchetto `{stringr}`
+(incluso nel `{tidyverse}`), che serve a lavorare sul testo. La funzione
+`str_remove_all()` toglie da ogni valore tutte le volte che compare il
+testo indicato tra virgolette; per togliere gli spazi si indica `" "`.
+Provala nell'area di prova:
+
+```{r}
+#| eval: false
+dati_clean %>%
+  mutate(age_group = str_remove_all(age_group, " ")) %>%
+  tabyl(age_group)
+```
+
+Così `"60 +"` diventa `"60+"`, mentre i valori già corretti restano
+uguali. Il vantaggio rispetto a `case_when()` è che non serve sapere in
+anticipo come sono scritti i valori sbagliati: la regola funzionerebbe
+anche con `"18 - 59"` o `"60 + "`.
+
+Aggiungi anche questa modifica nello stesso `mutate()`, dopo una
+virgola.
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+Il `mutate()` delle ricodifiche ora dovrebbe essere così:
+
+```{r}
+#| echo: true
+#| eval: false
+
+  mutate(
+    # ricodifica del sesso
+    sex = case_when(
+      sex == "m"                          ~ "M",
+      sex %in% c("f", "Female", "FEMALE") ~ "F",
+      TRUE                                ~ sex),
+    # ricodifica della regione
+    region = case_when(
+      region %in% c("a", "Region A") ~ "A",
+      region == "Region D"           ~ "D",
+      region == "f"                  ~ "F",
+      TRUE                           ~ region),
+    # ricodifica dello stato HIV in numero (0 = assenza, 1 = presenza)
+    hiv_status = case_when(
+      hiv_status %in% c("1", "Yes") ~ 1,
+      hiv_status == "0"             ~ 0),
+    # stato HIV con le etichette, per tabelle e grafici
+    hiv = factor(hiv_status,
+                 levels = c(0, 1),
+                 labels = c("Senza HIV", "Con HIV")),
+    # classe di età: tolti gli spazi ("60 +" diventa "60+")
+    age_group = str_remove_all(age_group, " ")
+  )
+```
+
+</br>
+
+</details>
+
+::: {.callout-tip appearance="default" icon="false"}
+## Approfondimento: un'alternativa per i casi semplici, `recode()`
+
+Quando si tratta solo di sostituire un valore con un altro, senza
+condizioni, esiste anche la funzione `recode()` del pacchetto `{dplyr}`.
+Attenzione: la sintassi è **VECCHIO = NUOVO**, il contrario di
+`rename()`.
+
+```{r}
+#| eval: false
+mutate(sex = recode(sex,
+  "m"      = "M",
+  "f"      = "F",
+  "Female" = "F",
+  "FEMALE" = "F"))
+```
+
+`case_when()` resta però lo strumento più generale: funziona anche
+quando la regola dipende da condizioni logiche o da più variabili, come
+vedrai nella prossima sezione.
+:::
+
+::: {.callout-tip appearance="default" icon="false"}
+## Approfondimento: il pacchetto `{stringr}`
+
+Hai usato `str_remove_all()` per togliere gli spazi da `age_group`. Il
+pacchetto `{stringr}` contiene molte altre funzioni per lavorare sul
+testo: i loro nomi iniziano tutti con `str_`, così in RStudio basta
+scrivere `str_` per vederle elencate. Alcune delle più utili:
+
+| Funzione | Cosa fa | Esempio | Risultato |
+|------------------|------------------|------------------|-------------------|
+| `str_remove()` | toglie la prima volta che compare un testo | `str_remove("Region A", "Region ")` | `"A"` |
+| `str_remove_all()` | toglie tutte le volte che compare un testo | `str_remove_all("18 - 59", " ")` | `"18-59"` |
+| `str_replace()` | sostituisce un testo con un altro | `str_replace("60 +", " ", "")` | `"60+"` |
+| `str_to_upper()` | trasforma in maiuscolo | `str_to_upper("f")` | `"F"` |
+| `str_to_lower()` | trasforma in minuscolo | `str_to_lower("FEMALE")` | `"female"` |
+| `str_squish()` | toglie gli spazi all'inizio, alla fine e quelli doppi | `str_squish(" Event  date ")` | `"Event date"` |
+| `str_detect()` | dice se un testo è contenuto nel valore (`TRUE`/`FALSE`) | `str_detect("Region A", "Region")` | `TRUE` |
+
+Queste funzioni si possono anche combinare. Per esempio, la variabile
+`region` si potrebbe sistemare con un solo comando, togliendo
+`"Region "` e trasformando tutto in maiuscolo:
+
+```{r}
+#| eval: false
+mutate(region = str_to_upper(str_remove(region, "Region ")))
+```
+
+Si legge dall'interno verso l'esterno: prima `str_remove()` trasforma
+`"Region A"` in `"A"`, poi `str_to_upper()` trasforma `"a"` in `"A"` e
+`"f"` in `"F"`. Per un uso più avanzato trovi `str_detect()` negli
+Approfondimenti in fondo al modulo.
+:::
+
+## Controllare la coerenza tra variabili
+
+### Gli eventi fuori dal follow-up
+
+`case_when()` è utile anche per costruire una variabile a partire da
+**più variabili**, con condizioni logiche. Per esempio, la data
+dell'evento dovrebbe cadere tra la data di vaccinazione e la data di
+fine follow-up. Possiamo classificare ogni soggetto così:
+
+```{r}
+#| eval: false
+mutate(event_check = case_when(
+  is.na(date_event)        ~ "nessun evento",
+  date_event < date_vacc   ~ "evento prima della vaccinazione",
+  date_event > date_end_fu ~ "evento dopo la fine del follow-up",
+  TRUE                     ~ "evento durante il follow-up"))
+```
+
+Nota l'ordine delle regole: la prima riguarda i soggetti senza evento,
+così le regole successive (che confrontano le date) vengono applicate
+solo a chi ha una data di evento.
+
+### Aggiungi alla catena di pulizia
+
+Prova prima il comando nell'area di prova: scrivi `dati_clean %>%` prima
+del `mutate()` e aggiungi in fondo `%>% tabyl(event_check)`, per vedere
+quanti soggetti ci sono in ciascuna categoria. Poi aggiungi il
+`mutate()` alla catena.
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+Aggiungi in fondo alla catena (ricorda il `%>%` alla fine della riga
+precedente):
+
+```{r}
+#| echo: true
+#| eval: false
+
+  # controllo della coerenza della data dell'evento
+  mutate(event_check = case_when(
+    is.na(date_event)        ~ "nessun evento",
+    date_event < date_vacc   ~ "evento prima della vaccinazione",
+    date_event > date_end_fu ~ "evento dopo la fine del follow-up",
+    TRUE                     ~ "evento durante il follow-up"))
+```
+
+</br>
+
+</details>
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+opts <- c(
+  "Nessuno",
+  answer = "2",
+  "17"
+)
+
+cat("Quanti soggetti hanno una data di evento fuori dal periodo di follow-up (prima della vaccinazione o dopo la fine)?", longmcq(opts))
+```
+:::
+::::
+
+## Classi di età
+
+### Creare le classi con `age_categories()`
+
+La variabile `age_group` divide i soggetti solo in due classi. Per le
+analisi può servire una suddivisione più fine, per esempio per decenni.
+La funzione `age_categories()` del pacchetto `{epikit}` crea le classi a
+partire da una variabile numerica. I suoi argomenti principali sono:
+
+-   la variabile numerica da dividere in classi (`age`);
+-   `lower`: il limite inferiore della prima classe;
+-   `upper`: il limite oltre il quale tutte le età finiscono in un'unica
+    classe (per esempio `80` crea la classe `"80+"`);
+-   `by`: l'ampiezza delle classi (per esempio `10` anni).
+
+Prova nell'area di prova a creare classi di 10 anni da 20 a 80 anni e
+guarda il risultato:
+
+```{r}
+#| eval: false
+dati_clean %>%
+  mutate(age_cat = age_categories(age, lower = 20, upper = 80, by = 10)) %>%
+  tabyl(age_cat)
+```
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+opts <- c(
+  "Perché l'età di quei soggetti è mancante",
+  answer = "Perché i soggetti di 18 e 19 anni sono sotto il limite inferiore (20)",
+  "Perché i soggetti con più di 80 anni non rientrano in nessuna classe"
+)
+
+cat("Nella tabella compaiono molti NA (più di 1.300). Perché?", longmcq(opts))
+```
+:::
+::::
+
+Questo esempio mostra perché, dopo aver creato una nuova variabile, è
+importante controllare che non ci siano `NA` inattesi. Nell'area di
+prova:
+
+1.  conta gli `NA` della variabile di partenza. Una classe di età può
+    mancare solo se manca l'età, quindi ci aspettiamo lo stesso numero
+    di `NA` in `age_cat`:
+
+    ```{r}
+    #| eval: false
+    sum(is.na(dati_clean$age))
+    ```
+
+2.  confronta questo numero con la riga `NA` della tabella di
+    `tabyl(age_cat)`: qui gli `NA` sono molti di più;
+
+3.  guarda l'età minima e massima con `range()` e confrontale con i
+    limiti delle classi:
+
+    ```{r}
+    #| eval: false
+    range(dati_clean$age, na.rm = TRUE)
+    ```
+
+    L'età minima è 18 anni, ma la prima classe parte da 20: i soggetti
+    di 18 e 19 anni non rientrano in nessuna classe e ricevono `NA`.
+    Puoi vederlo anche nel Viewer, affiancando età e classe e ordinando
+    la colonna `age_cat` (gli `NA` finiscono in fondo):
+
+    ```{r}
+    #| eval: false
+    dati_clean %>%
+      mutate(age_cat = age_categories(age, lower = 20, upper = 80, by = 10)) %>%
+      select(age, age_cat) %>%
+      View()
+    ```
+
+Invece di `lower`, `upper` e `by` puoi indicare direttamente i limiti
+delle classi con l'argomento `breakers`, per esempio
+`breakers = c(18, 30, 40, 50, 60, 70, 80)`: così la prima classe è
+`"18-29"`. Per tutte le opzioni scrivi `?age_categories` nella console.
+Prova nell'area di prova e controlla che ora gli `NA` di `age_cat` siano
+tanti quante le età mancanti:
+
+```{r}
+#| eval: false
+dati_clean %>%
+  mutate(age_cat = age_categories(age, breakers = c(18, 30, 40, 50, 60, 70, 80))) %>%
+  tabyl(age_cat)
+```
+
+### Aggiungi alla catena di pulizia
+
+Aggiungi in fondo alla catena un nuovo `mutate()` che crei la variabile
+`age_cat` con classi di 10 anni a partire da 18 anni, usando l'argomento
+`breakers`.
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+Aggiungi in fondo alla catena (ricorda il `%>%` alla fine della riga
+precedente):
+
+```{r}
+#| echo: true
+#| eval: false
+
+  mutate(
+    # classi di età di 10 anni
+    age_cat = age_categories(age, breakers = c(18, 30, 40, 50, 60, 70, 80))
+  )
+```
+
+</br>
+
+</details>
+
+### Età e classe di età sono coerenti?
+
+Il dataset contiene sia l'età (`age`) sia la classe di età
+(`age_group`): le due informazioni dovrebbero coincidere. Per
+verificarlo, ricalcola nell'area di prova la classe a partire dall'età
+con `ifelse()`, in una nuova variabile `age_group_calc`, e confrontala
+con `age_group` in una tabella incrociata:
+
+```{r}
+#| eval: false
+dati_clean %>%
+  mutate(age_group_calc = ifelse(age >= 60, "60+", "18-59")) %>%
+  tabyl(age_group, age_group_calc)
+```
+
+Nelle righe trovi i valori di `age_group`, nelle colonne quelli
+ricalcolati dall'età. Nella tabella vedrai che:
+
+-   per quasi tutti i soggetti le due informazioni coincidono;
+-   c'è **un soggetto** con `age_group` uguale a `"60+"` ma un'età
+    inferiore a 60 anni: le due informazioni sono in contraddizione;
+-   nella colonna `NA_` ci sono **5 soggetti** senza età (quindi senza
+    classe ricalcolata), che però hanno la classe di età: per loro **non
+    è stata registrata l'età esatta, ma solo la classe** (3 `"18-59"` e
+    2 `"60+"`);
+-   nella riga `NA` ci sono 4 soggetti con l'età ma senza la classe di
+    età originale.
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+opts <- c(
+  "Vanno eliminati, perché manca l'età",
+  answer = "Possiamo tenere la loro classe di età, perché è l'unica informazione disponibile",
+  "Bisogna assegnare loro la classe \"18-59\", che è la più frequente"
+)
+
+cat("Cosa possiamo fare con i 5 soggetti che hanno la classe di età ma non l'età?", longmcq(opts))
+```
+:::
+::::
+
+### Dare la priorità a un'informazione: `coalesce()`
+
+Per costruire la classe di età definitiva dobbiamo decidere quale
+informazione usare. Quale è più affidabile? Ogni gruppo di lavoro deve
+deciderlo in base a come sono stati raccolti i dati. Qui scegliamo:
+
+-   quando l'età c'è, di usare la classe **ricalcolata dall'età**
+    (`age_group_calc`), perché l'età è più dettagliata: così si corregge
+    anche il soggetto con le due informazioni in contraddizione, e si
+    completano i 4 soggetti senza classe;
+-   quando l'età manca, di usare la classe **originale** (`age_group`),
+    che è l'unica informazione disponibile: così non si perdono i 5
+    soggetti per cui è stata registrata solo la classe.
+
+La funzione `coalesce()` fa proprio questo: per ogni riga, prende il
+**primo valore non mancante** tra quelli indicati, nell'ordine.
+
+```{r}
+#| eval: false
+mutate(age_group = coalesce(age_group_calc, age_group))
+```
+
+Si legge: "per ogni riga, `age_group` diventa `age_group_calc`; se
+`age_group_calc` è `NA` (cioè l'età manca), usa il valore originale di
+`age_group`".
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+opts <- c(
+  "NA",
+  "\"18-59\"",
+  answer = "\"60+\""
+)
+
+cat("Cosa restituisce coalesce(NA, \"60+\", \"18-59\")?", longmcq(opts))
+```
+:::
+::::
+
+Prova nell'area di prova e controlla che `age_group` non abbia più `NA`:
+
+```{r}
+#| eval: false
+dati_clean %>%
+  mutate(age_group_calc = ifelse(age >= 60, "60+", "18-59")) %>%
+  mutate(age_group = coalesce(age_group_calc, age_group)) %>%
+  tabyl(age_group)
+```
+
+### Aggiungi alla catena di pulizia
+
+Aggiungi nello stesso `mutate()` di `age_cat`, dopo una virgola:
+
+-   la variabile `age_group_calc`;
+-   la nuova `age_group` con `coalesce()`.
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+Il `mutate()` delle classi di età ora dovrebbe essere così:
+
+```{r}
+#| echo: true
+#| eval: false
+
+  mutate(
+    # classi di età di 10 anni
+    age_cat = age_categories(age, breakers = c(18, 30, 40, 50, 60, 70, 80)),
+    # classe di età ricalcolata dall'età
+    age_group_calc = ifelse(age >= 60, "60+", "18-59"),
+    # priorità alla classe calcolata dall'età, altrimenti quella originale
+    age_group = coalesce(age_group_calc, age_group)
+  )
+```
+
+All'interno di un `mutate()` le modifiche vengono eseguite in ordine:
+per questo `age_group_calc` deve essere creata **prima** di essere usata
+in `coalesce()`.
+
+</br>
+
+</details>
+
+Riesegui la catena e controlla nell'area di prova che `age_cat` abbia
+solo i 5 `NA` delle età mancanti e che `age_group` non abbia `NA`:
+
+```{r}
+#| eval: false
+dati_clean %>% tabyl(age_cat)
+dati_clean %>% tabyl(age_group)
+```
+
+## Differenze tra date: la durata del follow-up
+
+Ora che le date sono di classe "Date" (Modulo 2), possiamo fare calcoli
+con i semplici operatori `+` e `-`. La durata del follow-up di ogni
+soggetto, in giorni, è la differenza tra la data di fine follow-up e la
+data di vaccinazione.
+
+Prova nell'area di prova:
+
+```{r}
+#| eval: false
+dati_clean %>%
+  mutate(fu_days = date_end_fu - date_vacc) %>%
+  select(date_vacc, date_end_fu, fu_days) %>%
+  head()
+```
+
+I valori compaiono come "120 days": è una classe speciale chiamata
+"difftime". Per ottenere un numero semplice, racchiudi il calcolo in
+`as.numeric()`.
+
+::: {.callout-tip appearance="default" icon="false"}
+## Approfondimento: contare o non contare il primo giorno?
+
+Con questo calcolo, un soggetto vaccinato e uscito dal follow-up nello
+stesso giorno ha una durata di 0 giorni. Se nel tuo contesto preferisci
+contare anche il primo giorno, aggiungi `+ 1` dopo `as.numeric()`.
+:::
+
+### Aggiungi alla catena di pulizia
+
+Aggiungi alla catena un `mutate()` che crei la variabile numerica
+`fu_days`. Poi controlla con `range()` nell'area di prova la durata
+minima e massima del follow-up.
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+Aggiungi in fondo alla catena (ricorda il `%>%` alla fine della riga
+precedente):
+
+```{r}
+#| echo: true
+#| eval: false
+
+  # durata del follow-up in giorni
+  mutate(fu_days = as.numeric(date_end_fu - date_vacc))
+```
+
+</br>
+
+</details>
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+opts <- c(
+  "Che il soggetto ha avuto l'evento il giorno della vaccinazione",
+  answer = "Che la data di fine follow-up è precedente alla data di vaccinazione: è un errore nei dati",
+  "Che il soggetto è uscito dal follow-up prima di essere arruolato, ed è normale"
+)
+
+cat("range(dati_clean$fu_days) mostra un valore minimo negativo (-2). Cosa significa?", longmcq(opts))
+```
+:::
+::::
+
+## Filtrare le righe
+
+### La funzione `filter()`
+
+-\>Filtrare i dati per rimuovere delle osservazioni o analizzare un
+sottoinsieme dei dati è una delle operazioni fondamentali. Per tenere
+solo alcune righe si usa la funzione `filter()` del pacchetto `{dplyr}`.
+Tra le parentesi si scrive una condizione logica: vengono **tenute** le
+righe per cui la condizione è vera. Per esempio, per tenere solo le
+donne:
+
+```{r}
+#| eval: false
+filter(sex == "F")
+```
+
+Più condizioni si possono combinare con `&` (e), `|` (o) e le parentesi.
+
+### Escludere le regioni fuori studio
+
+Le regioni E ed F non fanno parte dello studio. Vanno escluse anche le
+persone con regione mancante, perché non sappiamo se appartengono a una
+regione dello studio. Prova nell'area di prova due modi diversi di
+togliere le regioni E ed F e confronta il numero di righe:
+
+```{r}
+#| eval: false
+# tenere solo le regioni dello studio
+dati_clean %>% filter(region %in% c("A", "B", "C", "D")) %>% nrow()
+
+# togliere le regioni E ed F
+dati_clean %>% filter(region %in% c("A", "B", "C", "D") & !is.na(hiv_status)) %>% nrow()
+```
+
+Il punto esclamativo davanti alla condizione la nega:
+`!region %in% c("E", "F")` vuol dire "la regione **non** è E né F".
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+opts <- c(
+  "Perché uno dei due comandi contiene un errore",
+  answer = "Perché il primo comando toglie anche la riga con la regione mancante (NA)",
+  "Perché il secondo comando toglie anche la regione D"
+)
+
+cat("I due comandi danno un numero di righe diverso (di una riga). Perché?", longmcq(opts))
+```
+:::
+::::
+
+::: {.callout-warning appearance="default" icon="false"}
+## Attenzione a `filter()` e ai valori mancanti
+
+`filter()` tiene solo le righe per cui la condizione è **vera**: le
+righe in cui la condizione non si può valutare perché il valore è `NA`
+vengono **eliminate**. Per esempio `filter(age > 60)` toglie anche tutte
+le righe con età mancante. Per tenerle bisogna dirlo esplicitamente con
+`|` (o) e `is.na()`:
+
+```{r}
+#| eval: false
+filter(age > 60 | is.na(age))
+```
+
+L'operatore `%in%` si comporta in modo diverso: con un valore mancante
+non restituisce `NA` ma `FALSE`, perché `NA` non è tra i valori elencati.
+Per questo:
+
+-   `region %in% c("A", "B", "C", "D")` è `FALSE` per la regione
+    mancante, quindi la riga viene **tolta**;
+-   `!region %in% c("E", "F")` è `TRUE` per la regione mancante, quindi
+    la riga viene **tenuta**.
+
+Prima di filtrare, chiediti sempre cosa vuoi fare con i valori mancanti.
+Qui vogliamo escludere anche la regione mancante, quindi elenchiamo le
+regioni dello studio: `region %in% c("A", "B", "C", "D")`.
+:::
+
+### Due condizioni insieme: `&`
+
+Nei moduli successivi confronteremo le persone con e senza HIV: chi ha
+lo stato HIV mancante non può entrare in questo confronto, quindi lo
+escludiamo. Invece di scrivere due `filter()`, uno per la regione e uno
+per lo stato HIV, possiamo scrivere un solo `filter()` con le due
+condizioni legate da `&`: una riga viene tenuta solo se **entrambe** le
+condizioni sono vere.
+
+La sintassi è:
+
+```{r}
+#| eval: false
+filter(CONDIZIONE_1 & CONDIZIONE_2)
+```
+
+Nell'area di prova scrivi un `filter()` che tenga solo le persone delle
+regioni A, B, C e D **e** con stato HIV non mancante, e conta le righe
+con `nrow()`.
+
+<details>
+
+<summary style="text-decoration: underline; color: darkgreen;">
+
+`r fontawesome::fa("lightbulb", fill = "gold")` Clicca per leggere un
+suggerimento
+
+</summary>
+
+</br>
+
+Per la seconda condizione ti serve la funzione che controlla se un valore
+**non** è mancante: la trovi nella tabella degli operatori all'inizio
+del modulo.
+
+</br>
+
+</details>
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+#| eval: false
+dati_clean %>%
+  filter(region %in% c("A", "B", "C", "D") & !is.na(hiv_status)) %>%
+  nrow()
+```
+
+</br>
+
+</details>
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+opts <- c(
+  "Sì, perché la regione è tra quelle dello studio",
+  answer = "No, perché la seconda condizione è falsa",
+  "Dipende dall'ordine delle due condizioni"
+)
+
+cat("Una persona della regione B con stato HIV mancante viene tenuta da questo filtro?", longmcq(opts))
+```
+:::
+::::
+
+### Escludere le date incoerenti
+
+Togliamo anche i soggetti con errori nelle date: la durata del follow-up
+negativa (`fu_days < 0`) e gli eventi fuori dal periodo di follow-up
+(`event_check`).
+
+### Aggiungi alla catena di pulizia
+
+Aggiungi alla catena tre `filter()`:
+
+-   uno che tenga solo le regioni dello studio (A, B, C e D) **e** le
+    righe con stato HIV non mancante, come hai appena provato;
+-   uno che tenga solo le righe con durata del follow-up maggiore o
+    uguale a 0;
+-   uno che tenga solo le righe in cui `event_check` è `"nessun evento"`
+    oppure `"evento durante il follow-up"`.
+
+<details>
+
+<summary style="text-decoration: underline; color: darkgreen;">
+
+`r fontawesome::fa("lightbulb", fill = "gold")` Clicca per leggere un
+suggerimento
+
+</summary>
+
+</br>
+
+Per l'ultimo filtro puoi usare `%in%` con un vettore che contiene le due
+modalità da tenere.
+
+</br>
+
+</details>
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+Aggiungi in fondo alla catena (ricorda il `%>%` alla fine della riga
+precedente):
+
+```{r}
+#| echo: true
+#| eval: false
+
+  # solo regioni dello studio (esclude E, F e regione mancante) e stato HIV noto
+  filter(region %in% c("A", "B", "C", "D") & !is.na(hiv_status)) %>%
+  # esclusione dei follow-up di durata negativa
+  filter(fu_days >= 0) %>%
+  # esclusione degli eventi fuori dal periodo di follow-up
+  filter(event_check %in% c("nessun evento", "evento durante il follow-up"))
+```
+
+</br>
+
+</details>
+
+Quante righe hai tolto in tutto? Confronta `nrow(dati)` e
+`nrow(dati_clean)` nell'area di prova.
+
+## Riordinare le variabili
+
+Guarda l'ordine delle variabili di `dati_clean` (per esempio con
+`names(dati_clean)`): le nuove variabili sono in fondo, lontane da
+quelle a cui si riferiscono. L'ordine non cambia nulla per R, ma se
+esportiamo il dataset e lo condividiamo con un collega conviene che le
+variabili collegate siano vicine, per esempio `age`, `age_group` e
+`age_cat`.
+
+Come hai visto nel Modulo 2, `select()` serve anche a riordinare le
+variabili: le variabili vengono messe nell'ordine in cui le scrivi. Puoi
+usare anche gli aiutanti come `starts_with()` ed `everything()`.
+
+### Aggiungi alla catena di pulizia
+
+Aggiungi alla catena un `select()` che metta le variabili in questo
+ordine: `id_subject`, `group`, `region`, `sex`, `age`, `age_group`,
+`age_cat`, le due variabili di Charlson, `hiv_status`, `hiv`, le
+variabili che iniziano con `"date_"`, `fu_days`, `event` e infine
+`anticorpi` e `cd4`.
+
+Le variabili di servizio `event_check` e `age_group_calc` ci sono
+servite per i controlli: non elencandole nel `select()`, vengono
+eliminate.
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+Aggiungi in fondo alla catena (ricorda il `%>%` alla fine della riga
+precedente):
+
+```{r}
+#| echo: true
+#| eval: false
+
+  # riordino delle variabili (event_check e age_group_calc vengono eliminate)
+  select(id_subject, group, region, sex, age, age_group, age_cat,
+         chrls_score, chrls_index, hiv_status, hiv, starts_with("date_"),
+         fu_days, event, anticorpi, cd4)
+```
+
+</br>
+
+</details>
+
+## Verifica finale
+
+Crea la sezione "Verifica" (**Ctrl+Shift+R**), subito dopo la catena di
+pulizia, e controlla il dataset finale:
+
+```{r}
+#| eval: false
+# Verifica ----------------------------------------------------------------
+
+# righe tolte e struttura del dataset
+nrow(dati) - nrow(dati_clean)
+names(dati_clean)
+sapply(dati_clean, class)
+
+# modalità delle variabili categoriche
+dati_clean %>% tabyl(region)
+dati_clean %>% tabyl(sex)
+dati_clean %>% tabyl(age_group)
+dati_clean %>% tabyl(age_cat)
+dati_clean %>% tabyl(hiv_status)
+dati_clean %>% tabyl(hiv)
+dati_clean %>% tabyl(event)
+
+# durata del follow-up
+range(dati_clean$fu_days)
+
+# valori mancanti in ogni variabile
+colSums(is.na(dati_clean))
+```
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+opts <- c(
+  "5",
+  "16",
+  answer = "21"
+)
+
+cat("Quante righe sono state tolte in tutto dalla catena di questo modulo, rispetto a dati?", longmcq(opts))
+```
+:::
+::::
+
+## Salvare i dati puliti
+
+Ora che il dataset è pulito, salviamolo in un file, così potrai
+riprenderlo senza rifare la pulizia. Si usa la funzione `export()` del
+pacchetto `{rio}`, la "gemella" di `import()`: il primo argomento è
+l'oggetto da salvare, il secondo è il percorso del file, tra virgolette.
+Il formato del file dipende **solo dall'estensione** che scrivi nel
+nome del file.
+
+```{r}
+#| eval: false
+export(OGGETTO, "CARTELLA/NOME_FILE.estensione")
+```
+
+Usiamo il formato **RDS** (estensione `.rds`), il formato proprio di R:
+a differenza di CSV ed Excel conserva le classi delle variabili (date,
+numeri, fattori), quindi quando reimporterai i dati con `import()` non
+dovrai rifare le conversioni.
+
+### Aggiungi allo script
+
+Crea la sezione "Salvataggio dei dati puliti" (**Ctrl+Shift+R**) e salva
+`dati_clean` nella cartella `dati` in formato RDS, con il nome
+`dati_clean_NOME` seguito dal tuo nome: per esempio `dati_clean_MARCO.rds`.
+Poi controlla con il pannello **Files** di RStudio che il file sia nella
+cartella.
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+#| eval: false
+
+# Salvataggio dei dati puliti ---------------------------------------------
+export(dati_clean, "dati/dati_clean_NOME.rds")
+```
+
+</br>
+
+</details>
+
+Nella cartella `dati` c'è anche il file `dati_clean.rds`, preparato da
+noi: è il risultato della stessa pulizia. Nei prossimi moduli tutti
+importeranno quel file, così lavoreremo tutti sugli stessi dati puliti,
+anche se nella tua catena qualcosa fosse andato storto. Il tuo file
+`dati_clean_NOME.rds` ti serve per confrontare il tuo risultato con il
+nostro.
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+opts <- c(
+  "Un argomento di export() che indica il formato",
+  answer = "L'estensione scritta nel nome del file",
+  "Il nome dell'oggetto che si esporta"
+)
+
+cat("Con export(), che cosa decide il formato del file salvato?", longmcq(opts))
+```
+:::
+::::
+
+## Approfondimenti
+
+Se hai finito in anticipo, prova questi esercizi partendo dal dataset
+`dati_clean`.
+
+### Focus sugli ultraottantenni con HIV
+
+Crea un nuovo data frame chiamato `over80_hiv` che:
+
+-   contenga solo i soggetti con classe di età `"80+"` e stato HIV
+    positivo;
+-   abbia una nuova variabile `fu_lungo`, uguale a `"Sì"` se la durata
+    del follow-up è di almeno 120 giorni e `"No"` altrimenti;
+-   contenga solo le variabili `id_subject`, `sex`, `age`, `fu_days`,
+    `fu_lungo` ed `event`.
+
+Poi salvalo nella cartella `output` come `over80_hiv.rds`.
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+#| eval: false
+
+over80_hiv <- dati_clean %>%
+  filter(age_cat == "80+" & hiv_status == 1) %>%
+  mutate(fu_lungo = ifelse(fu_days >= 120, "Sì", "No")) %>%
+  select(id_subject, sex, age, fu_days, fu_lungo, event)
+
+export(over80_hiv, "output/over80_hiv.rds")
+```
+
+</br>
+
+</details>
+
+### Cercare un testo: `str_detect()`
+
+La funzione `str_detect()` del pacchetto `{stringr}` restituisce `TRUE`
+se un certo testo (`pattern`) compare in un valore (`string`), e `FALSE`
+altrimenti. Si usa spesso dentro `filter()`. Attenzione: come `==`,
+distingue le maiuscole dalle minuscole.
+
+Partendo dal dataset grezzo `dati_raw`, trova le righe in cui la regione
+contiene la parola `"Region"`: sono proprio i valori che abbiamo dovuto
+ricodificare.
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+#| eval: false
+
+dati_raw %>%
+  filter(str_detect(string = REGION, pattern = "Region")) %>%
+  select(`subject ID`, REGION)
+```
+
+</br>
+
+</details>
+
+## Lo script completo
+
+Ecco come dovrebbe essere la parte del tuo script relativa a questa
+esercitazione. Confrontala con la tua: i commenti e i comandi di prova
+possono essere diversi, ma la catena di pulizia deve fare le stesse
+cose, nello stesso ordine. Lo script completo dei Moduli 1, 2 e 3 lo
+trovi anche nella cartella `script/backup`, nel file `backup_pulizia_dati.R`.
+
+<details>
+
+<summary style="text-decoration: underline; color: blue;">
+
+`r fontawesome::fa("check", fill = "blue")` Clicca per vedere lo script
+completo
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+#| eval: false
+
+# Modulo 3 - Pulizia dei dati: approfondimento =============================
+
+# Pulizia dei dati --------------------------------------------------------
+dati_clean <- dati %>%
+  # variabile evento: 1 se c'è una data di evento, 0 altrimenti
+  mutate(event = ifelse(is.na(date_event), 0, 1)) %>%
+  mutate(
+    # ricodifica del sesso
+    sex = case_when(
+      sex == "m"                          ~ "M",
+      sex %in% c("f", "Female", "FEMALE") ~ "F",
+      TRUE                                ~ sex),
+    # ricodifica della regione
+    region = case_when(
+      region %in% c("a", "Region A") ~ "A",
+      region == "Region D"           ~ "D",
+      region == "f"                  ~ "F",
+      TRUE                           ~ region),
+    # ricodifica dello stato HIV in numero (0 = assenza, 1 = presenza)
+    hiv_status = case_when(
+      hiv_status %in% c("1", "Yes") ~ 1,
+      hiv_status == "0"             ~ 0),
+    # stato HIV con le etichette, per tabelle e grafici
+    hiv = factor(hiv_status,
+                 levels = c(0, 1),
+                 labels = c("Senza HIV", "Con HIV")),
+    # classe di età: tolti gli spazi ("60 +" diventa "60+")
+    age_group = str_remove_all(age_group, " ")
+  ) %>%
+  # controllo della coerenza della data dell'evento
+  mutate(event_check = case_when(
+    is.na(date_event)        ~ "nessun evento",
+    date_event < date_vacc   ~ "evento prima della vaccinazione",
+    date_event > date_end_fu ~ "evento dopo la fine del follow-up",
+    TRUE                     ~ "evento durante il follow-up")) %>%
+  mutate(
+    # classi di età di 10 anni
+    age_cat = age_categories(age, breakers = c(18, 30, 40, 50, 60, 70, 80)),
+    # classe di età ricalcolata dall'età
+    age_group_calc = ifelse(age >= 60, "60+", "18-59"),
+    # priorità alla classe calcolata dall'età, altrimenti quella originale
+    age_group = coalesce(age_group_calc, age_group)
+  ) %>%
+  # durata del follow-up in giorni
+  mutate(fu_days = as.numeric(date_end_fu - date_vacc)) %>%
+  # solo regioni dello studio (esclude E, F e regione mancante) e stato HIV noto
+  filter(region %in% c("A", "B", "C", "D") & !is.na(hiv_status)) %>%
+  # esclusione dei follow-up di durata negativa
+  filter(fu_days >= 0) %>%
+  # esclusione degli eventi fuori dal periodo di follow-up
+  filter(event_check %in% c("nessun evento", "evento durante il follow-up")) %>%
+  # riordino delle variabili (event_check e age_group_calc vengono eliminate)
+  select(id_subject, group, region, sex, age, age_group, age_cat,
+         chrls_score, chrls_index, hiv_status, hiv, starts_with("date_"),
+         fu_days, event, anticorpi, cd4)
+
+
+# Verifica ----------------------------------------------------------------
+nrow(dati) - nrow(dati_clean)
+names(dati_clean)
+str(dati_clean)
+dati_clean %>% tabyl(region)
+dati_clean %>% tabyl(sex)
+dati_clean %>% tabyl(age_group)
+dati_clean %>% tabyl(age_cat)
+dati_clean %>% tabyl(hiv_status)
+dati_clean %>% tabyl(hiv)
+dati_clean %>% tabyl(event)
+range(dati_clean$fu_days)
+colSums(is.na(dati_clean))
+
+
+# Salvataggio dei dati puliti ---------------------------------------------
+export(dati_clean, "dati/dati_clean_NOME.rds")
+
+
+# Area di prova -----------------------------------------------------------
+# (il contenuto può variare)
+```
+
+</br>
+
+</details>
+
+Salva lo script e avvisa il docente che hai finito. Lo script
+`pulizia_dati.R` è completo: nel pomeriggio, nel Modulo 4, inizierai uno
+script nuovo. Se non hai completato l'esercizio, nella cartella `script/backup`
+trovi la versione corretta di `backup_pulizia_dati.R`.
+
+## Riepilogo
+
+In questo modulo hai imparato a:
+
+-   usare gli operatori di confronto (`==`, `!=`, `>`, `<`, `>=`, `<=`,
+    `%in%`, `is.na()`) e gli operatori logici (`&`, `|`, `!`);
+-   creare una variabile con due esiti con `ifelse()`;
+-   ricodificare le modalità e costruire variabili con più regole con
+    `case_when()` (con `recode()` come alternativa per i casi semplici);
+-   trasformare una variabile in un fattore con `factor()`, scegliendo
+    l'ordine delle categorie (`levels`) e le etichette (`labels`);
+-   lavorare sul testo con le funzioni del pacchetto `{stringr}`, per
+    esempio togliere gli spazi con `str_remove_all()`;
+-   modificare più variabili con un solo `mutate()`, separando le
+    modifiche con una virgola;
+-   creare classi di età con `age_categories()` e dare la priorità a
+    un'informazione con `coalesce()`;
+-   calcolare differenze tra date e convertirle in numero con
+    `as.numeric()`;
+-   filtrare le righe con `filter()`, combinando più condizioni con `&`
+    e facendo attenzione ai valori mancanti;
+-   riordinare le variabili con `select()`;
+-   salvare i dati in formato RDS con `export()`.
+
+## Risorse aggiuntive
+
+| Argomento | Risorsa |
+|---------------------------------------|---------------------------------|
+| Operatori logici e di confronto | Epi R Handbook, cap. 3 "R Basics": <https://epirhandbook.com/en/new_pages/basics.html> |
+| `ifelse()`, `case_when()`, `coalesce()`, `filter()`, `select()` | Epi R Handbook, cap. 8 "Cleaning data and core functions": <https://epirhandbook.com/en/new_pages/cleaning.html> |
+| Differenze tra date | Epi R Handbook, cap. 9 "Working with dates": <https://epirhandbook.com/en/new_pages/dates.html> |
+| Testo e stringhe (`{stringr}`, `str_remove_all()`, `str_detect()`) | Epi R Handbook, cap. 10 "Characters and strings": <https://epirhandbook.com/en/new_pages/characters_strings.html> |
+| Importare ed esportare i dati | Epi R Handbook, cap. 7 "Import and export": <https://epirhandbook.com/en/new_pages/importing.html> |
+
+```{=html}
+<!-- Sezione Autori in sospeso: da definire
+
+**Autori**
+
+Autori originali: Applied Epi (<https://appliedepi.org>), corso
+"Introduction to R for Applied Epidemiology", esercizio "More data
+cleaning"\
+Fonte dei dati: dati di una coorte vaccinale, modificati a scopo
+didattico\
+Adattato da: Chiara Sacco (Istituto Superiore di Sanità)
+-->
+```

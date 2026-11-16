@@ -1,0 +1,1496 @@
+---
+output: html_document
+editor_options:
+  chunk_output_type: console
+execute:
+  warning: false
+  error: false
+format:
+  html:
+    css: webex.css
+    include-after-body: webex.js
+    df-print: kable
+    toc: true
+    toc-depth: 4
+    toc-expand: 1
+editor:
+  markdown:
+    wrap: 72
+title: |
+  ![](immagini/logo_dmi.png){width=3in}
+---
+
+# **Corso introduttivo al software statistico R**
+
+# Modulo 06 Data Visualization con ggplot2 (Parte 2)
+
+## Obiettivi del modulo
+
+-   Modificare i colori di un grafico con le funzioni `scale_*()`, scegliendoli a mano o da palette predefinite
+-   Personalizzare gli assi: interruzioni, date e percentuali
+-   Costruire didascalie che si aggiornano con i dati
+-   Cambiare l'aspetto di un grafico con i temi completi e con `theme()`
+
+## Formato dell'esercizio
+
+<!-- Il paragrafo sotto è fisso: -->
+
+Questo esercizio è progettato per essere una guida e per aiutarti a completarlo in autonomia. Ti consigliamo fortemente di provare a eseguire il codice prima di guardare le soluzioni. Per aiutarti, abbiamo incluso in alcuni punti dei suggerimenti che possono indirizzarti nella direzione giusta. Li troverai così:
+
+<!-- ISTRUZIONI: Questo blocco "Suggerimento" va inserito ogni volta che vuoi dare un aiuto parziale allo studente senza svelare subito la soluzione (es. il nome di una funzione da usare, o un argomento a cui prestare attenzione). Copia l'intero blocco <details>...</details> e modifica solo il testo dopo </br>. -->
+
+<details>
+
+<summary style="text-decoration: underline; color: darkgreen;">
+
+`r fontawesome::fa("lightbulb", fill = "gold")` Clicca per leggere un suggerimento
+
+</summary>
+
+</br>
+
+Questo è un suggerimento.
+
+</br>
+
+</details>
+
+
+
+Le soluzioni, invece, avranno questo aspetto:
+
+<!-- ISTRUZIONI: Questo blocco "Soluzione" va inserito alla fine di ogni esercizio (o sotto-punto) e deve contenere codice R eseguibile e commentato. Copia l'intero blocco <details>...</details> e sostituisci il codice di esempio. Se la 
+     soluzione richiede più passaggi, aggiungi commenti # nel codice per spiegare ogni passaggio. Ricorda: niente etichette (label) nei chunk, come indicato nelle istruzioni generali. -->
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+print("Questo è un esempio di soluzione")
+
+```
+
+</br>
+
+</details>
+
+Durante l'esercizio troverai anche domande a risposta multipla, che servono a verificare se stai seguendo correttamente lo svolgimento. Le domande saranno simili a questa:
+
+<!-- ISTRUZIONI: Questo blocco "Domanda" usa il pacchetto`{webexercises}` per creare quiz a risposta multipla auto-correttivi. Copia l'intero blocco ::: {.callout-note}...::: 
+     e:
+       - scrivi le opzioni di risposta nel vettore "opts"
+       - indica la risposta corretta con answer = "..."
+       - scrivi il testo della domanda dentro cat("Domanda: ...")
+     Inserisci una domanda ogni volta che vuoi far verificare allo studente di aver capito un concetto chiave prima di proseguire. -->
+
+::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+pacman::p_load(webexercises)
+
+opts <- c(
+  "2",
+  "5",
+  answer = "4"
+)
+
+
+cat("Domanda di esempio: quanto fa 2 + 2?", longmcq(opts))
+
+```
+:::
+:::
+
+Lungo il modulo troverai anche due tipi di riquadri colorati. I riquadri **gialli** segnalano errori frequenti o punti in cui R si comporta in modo inatteso: leggili sempre, perché possono farti risparmiare tempo.
+
+<!-- ISTRUZIONI: Il box giallo "Attenzione a …" va usato per avvisi importanti: errori comuni, comportamenti di R che possono sorprendere, passaggi da non saltare. Il titolo inizia sempre con "Attenzione a" (es. "Attenzione ai nomi con spazi"). Copia l'intero blocco ::: {.callout-warning ...} ... ::: e modifica solo titolo e testo. -->
+
+::: {.callout-warning appearance="default" icon="false"}
+## Attenzione a …
+
+Questo è un esempio di riquadro di attenzione.
+:::
+
+I riquadri **verdi** contengono invece approfondimenti facoltativi, per chi vuole andare un po' oltre: puoi saltarli senza perdere il filo dell'esercizio e tornarci in un secondo momento.
+
+<!-- ISTRUZIONI: Il box verde "Approfondimento: …" va usato per contenuti facoltativi: funzioni alternative, scorciatoie, casi più avanzati. Lo studente deve poter completare l'esercizio anche senza leggerlo. Il titolo inizia sempre con "Approfondimento:" (es. "Approfondimento: gestire le date in R"). Copia l'intero blocco ::: {.callout-tip ...} ... ::: e modifica solo titolo e testo. -->
+
+::: {.callout-tip appearance="default" icon="false"}
+## Approfondimento: …
+
+Questo è un esempio di riquadro di approfondimento.
+:::
+
+Ti consigliamo di provare comunque a rispondere e a eseguire il codice da solo prima di consultare suggerimenti e soluzioni: è così che si impara davvero a usare R.
+
+
+## Preparazione
+
+
+Nell'esercitazione del pomeriggio continuerai a lavorare sullo stesso script di questa mattina:
+
+-   se il progetto R è ancora aperto, vai in fondo allo script `plot.R`;
+-   se invece l'hai chiuso, riapri il progetto e apri di nuovo lo script `plot.R` dalla cartella `script`; poi esegui tutto il codice che sta sopra l'area di prova: metti il cursore sulla riga del titolo "Area di prova" e premi **Ctrl + Alt + B** (**Cmd + Option + B** su Mac).
+
+In entrambi i casi, **sopra** la sezione "Area di prova", crea una nuova sezione chiamata "Modulo 06 - Data Visualization con ggplot2 (Parte 2)" con la combinazione di tasti **Ctrl + Shift + R** (**Cmd + Shift + R** su Mac): qui scriverai il codice dell'esercitazione del pomeriggio. Ricordati di salvare spesso il lavoro (**Ctrl + S**, oppure **Cmd + S** su Mac).
+
+## Iniziamo!
+
+`r fontawesome::fa("play", fill = "darkgreen")` **Da qui comincia l'esercitazione.**
+
+```{r}
+#| echo: false
+
+pacman::p_load(
+  tidyverse,   # ggplot2, dplyr, forcats, lubridate, ...
+  rio,         # import/export
+  here         # percorsi relativi al progetto
+)
+
+# dati_clean <- import(here("data", "dati_elaborati", "dati_modulo3.rds"))
+dati_clean <- import("materiali_corso_R/dati/dati_clean.rds")
+```
+
+### L’area di prova
+
+Anche in questo modulo userai l’“Area di prova” che hai creato questa mattina, in fondo allo script `plot.R`. Quasi tutti i grafici di oggi sono prove, che non serve conservare: falle lì. Nello script, sopra l'area di prova, scriverai solo gli oggetti che servono anche dopo: lo segnaleremo di volta in volta.
+
+## La logica delle scale
+
+Nell'area di prova, fai un grafico a barre del numero di vaccinati per regione (`region`), con il riempimento per `hiv`. Osserva i colori scelti da `{ggplot2}`.
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+ggplot(data = dati_clean, mapping = aes(x = region, fill = hiv)) +
+  geom_bar()
+
+```
+
+</br>
+
+</details>
+
+::: {.callout-tip appearance="default" icon="false"}
+## Approfondimento: le funzioni che modificano l'estetica
+
+Le funzioni che modificano il modo in cui un'estetica viene rappresentata hanno tutte la forma `scale_<estetica>_<metodo>()`, per esempio `scale_fill_manual()` o `scale_x_date()`.
+
+:::
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+pacman::p_load(webexercises)
+
+opts <- c(
+  "scale_fill_manual()",
+  answer = "scale_color_manual()",
+  "scale_manual_color()",
+  "scale_color_continuous()"
+)
+
+
+cat("Quale funzione useresti per scegliere a mano il colore dei punti di un grafico con color = hiv?", longmcq(opts))
+
+```
+:::
+::::
+
+### Un colore per ogni livello
+
+Crea una nuova sezione (**Ctrl+Shift+R**) che si chiamerà "Colori scelti a mano".
+
+Nell'area di prova, crea un nuovo grafico partendo dal precedente e aggiungi `scale_fill_manual()`, assegnando il colore `"steelblue"` alle persone senza HIV e `"darkorange"` alle persone con HIV.
+
+<details>
+
+<summary style="text-decoration: underline; color: darkgreen;">
+
+`r fontawesome::fa("lightbulb", fill = "gold")` Clicca per leggere un suggerimento
+
+</summary>
+
+</br>
+
+Usa l'argomento `values =` con un vettore `c()` in cui ogni colore è associato al nome del livello, ad esempio `"Senza HIV" = "steelblue"`.
+
+</br>
+
+</details>
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+ggplot(data = dati_clean, mapping = aes(x = region, fill = hiv)) +
+  geom_bar() +
+  scale_fill_manual(
+    values = c(
+      "Senza HIV" = "steelblue",
+      "Con HIV"   = "darkorange"))
+
+```
+
+</br>
+
+</details>
+
+::: {.callout-tip appearance="default" icon="false"}
+## Approfondimento: la scelta dei colori
+
+I colori si possono indicare con il nome (es. `"steelblue"`) o con il codice esadecimale (es. `"#2a9d8f"`). Per scegliere una palette e copiarne i codici puoi usare, ad esempio, <https://coolors.co/palettes/trending>.
+
+:::
+
+Ora, sempre nell'area di prova, nel vettore dei colori, scrivi `"Con hiv"` al posto di `"Con HIV"` ed esegui di nuovo il codice.
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+ggplot(data = dati_clean, mapping = aes(x = region, fill = hiv)) +
+  geom_bar() +
+  scale_fill_manual(
+    values = c(
+      "Senza HIV" = "steelblue",
+      "Con hiv"   = "darkorange"))
+
+```
+
+</br>
+
+</details>
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+pacman::p_load(webexercises)
+
+opts <- c(
+  "Un errore, e il grafico non viene prodotto",
+  "Un warning, e le barre Con HIV vengono escluse",
+  answer = "Nessun messaggio, ma le barre Con HIV diventano grigie",
+  "Nessun messaggio, e i colori restano quelli corretti"
+)
+
+
+cat("Cosa succede se il nome nel vettore non corrisponde esattamente al livello?", longmcq(opts))
+
+```
+:::
+::::
+
+### Due estetiche con la stessa scala
+
+Nell'area di prova, fai un grafico a barre per regione con `fill = hiv` e `color = hiv`, con `alpha = 0.5` nelle barre. Aggiungi un punto in cima a ogni barra con `geom_point(stat = "count", position = "stack", size = 3)`. Poi aggiungi `scale_fill_manual()` con due colori scelti da te, in codice esadecimale.
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+ggplot(data = dati_clean, mapping = aes(x = region, fill = hiv, color = hiv)) +
+  geom_bar(alpha = 0.5) +
+  geom_point(stat = "count", position = "stack", size = 3) +
+  scale_fill_manual(
+    values = c(
+      "Senza HIV" = "#2a9d8f",
+      "Con HIV"   = "#e76f51"))
+
+```
+
+</br>
+
+</details>
+
+Bordi e punti hanno ancora i colori di default. Aggiungi a `scale_fill_manual()` l'argomento `aesthetics = c("fill", "color")`.
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+ggplot(data = dati_clean, mapping = aes(x = region, fill = hiv, color = hiv)) +
+  geom_bar(alpha = 0.5) +
+  geom_point(stat = "count", position = "stack", size = 3) +
+  scale_fill_manual(
+    values = c(
+      "Senza HIV" = "#2a9d8f",
+      "Con HIV"   = "#e76f51"),
+    aesthetics = c("fill", "color"))
+
+```
+
+</br>
+
+</details>
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+pacman::p_load(webexercises)
+
+opts <- c(
+  "Applica i colori solo alle barre, non ai punti",
+  "Crea una legenda separata per fill e una per color",
+  answer = "Applica gli stessi colori sia a fill sia a color",
+  "Rende i punti dello stesso colore dello sfondo"
+)
+
+
+cat("Cosa fa l'argomento aesthetics = c('fill', 'color')?", longmcq(opts))
+
+```
+:::
+::::
+
+### Gli argomenti per la legenda
+
+Partendo dal grafico precedente, sopra all'area di prova, nella sezione "Colori scelti a mano", aggiungi a `scale_fill_manual()` questi argomenti, uno alla volta, osservando cosa cambia:
+
+-   `name = "Stato HIV"`
+-   `breaks = c("Con HIV", "Senza HIV")`
+-   `labels = c("Con HIV" = "Persone con HIV", "Senza HIV" = "Controlli")`
+
+Infine, nell'area di prova, utilizza `breaks = "Con HIV"`.
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+# IN AREA DI PROVA - un solo livello in breaks
+ggplot(data = dati_clean, mapping = aes(x = region, fill = hiv, color = hiv)) +
+  geom_bar(alpha = 0.5) +
+  geom_point(stat = "count", position = "stack", size = 3) +
+  scale_fill_manual(
+    values = c(
+      "Senza HIV" = "#2a9d8f",
+      "Con HIV"   = "#e76f51"),
+    breaks = "Con HIV",
+    aesthetics = c("fill", "color"))
+
+# Colori scelti a mano ----------------------------------------------------------
+
+ggplot(data = dati_clean, mapping = aes(x = region, fill = hiv, color = hiv)) +
+  geom_bar(alpha = 0.5) +
+  geom_point(stat = "count", position = "stack", size = 3) +
+  scale_fill_manual(
+    name = "Stato HIV",                             # titolo della legenda
+    values = c(                                     # colori
+      "Senza HIV" = "#2a9d8f",
+      "Con HIV"   = "#e76f51"),
+    breaks = c("Con HIV", "Senza HIV"),             # livelli e ordine in legenda
+    labels = c(                                     # testo in legenda
+      "Con HIV"   = "Persone con HIV",
+      "Senza HIV" = "Controlli"),
+    aesthetics = c("fill", "color"))                # estetiche coinvolte
+
+```
+
+</br>
+
+</details>
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+pacman::p_load(webexercises)
+
+opts <- c(
+  "Le barre Senza HIV spariscono dal grafico",
+  answer = "Il grafico non cambia, ma la legenda mostra solo Con HIV",
+  "Le barre Senza HIV diventano grigie come gli NA",
+  "Compare un errore, perché manca il livello Senza HIV"
+)
+
+
+cat("Con breaks = 'Con HIV', cosa succede?", longmcq(opts))
+
+```
+:::
+::::
+
+::: {.callout-warning appearance="default" icon="false"}
+## Attenzione ai valori mancanti
+
+Il colore dei valori mancanti non va nel vettore `values =`, ma nell'argomento `na.value =` di  `scale_<estetica>_<metodo>()`. Ad esempio, nell'istogramma dell'età per sesso del Modulo 5 le 2 persone con sesso mancante comparivano in grigio, con la voce `NA` in legenda. Anche se la variabile non presenta dati mancanti, indicarlo è una buona abitudine: un aggiornamento dei dati potrebbe introdurne.
+:::
+
+## Palette predefinite
+
+Crea una nuova sezione (**Ctrl+Shift+R**) che si chiamerà "Palette predefinite".
+
+Nell'area di prova, fai un grafico a barre per regione con il riempimento per Charlson index (`chrls_index`). Anziché utilizzare `scale_fill_manual()` per definire i colori di riempimento, usa `scale_fill_brewer()`, provando prima `palette = "Blues"` e poi `palette = "Pastel2"`. 
+
+
+<details>
+
+<summary style="text-decoration: underline; color: darkgreen;">
+
+`r fontawesome::fa("lightbulb", fill = "gold")` Clicca per leggere un suggerimento
+
+</summary>
+
+</br>
+
+Per vedere tutte le palette disponibili esegui `RColorBrewer::display.brewer.all()` nella console.
+
+</br>
+
+</details>
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+# brewer sequenziale
+ggplot(data = dati_clean, mapping = aes(x = region, fill = chrls_index)) +
+  geom_bar() +
+  scale_fill_brewer(palette = "Blues")
+
+# brewer qualitativa
+ggplot(data = dati_clean, mapping = aes(x = region, fill = chrls_index)) +
+  geom_bar() +
+  scale_fill_brewer(palette = "Pastel2")
+
+```
+
+</br>
+
+</details>
+
+Infine, nella sezione "Palette predefinite", prova `scale_fill_viridis_d()`.
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+# Palette predefinite ----------------------------------------------------------
+ggplot(data = dati_clean, mapping = aes(x = region, fill = chrls_index)) +
+  geom_bar() +
+  scale_fill_viridis_d()
+
+```
+
+</br>
+
+</details>
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+pacman::p_load(webexercises)
+
+opts <- c(
+  answer = "Sequenziale, perché le categorie hanno un ordine",
+  "Qualitativa, perché le categorie sono solo quattro",
+  "Qualitativa, perché la variabile è di tipo character",
+  "Sequenziale, perché ci sono valori mancanti"
+)
+
+
+cat("Per chrls_index, quale tipo di palette è più adatto?", longmcq(opts))
+
+```
+:::
+::::
+
+## Scale di colore continue
+
+Le scale viste finora servono per variabili **discrete**, con pochi livelli: a ogni livello un colore. Quando il colore rappresenta una variabile **continua**, come un'età media, serve invece una scala continua, che sfuma da un colore per il valore minimo a uno per il valore massimo.
+
+### I vaccinati per giorno
+
+Per lavorare con una variabile continua costruiamo un nuovo grafico: come si è svolta la campagna vaccinale giorno per giorno, quante persone sono state vaccinate e quanti anni avevano in media.
+
+Questo data frame servirà anche per il grafico finale, quindi va **nello script**: sopra l'area di prova, crea una nuova sezione (**Ctrl + Shift + R**) chiamata "Vaccinati per giorno" e lì crea il data frame `vaccinati_giorno`, con una riga per ogni data di vaccinazione e due variabili: il numero di vaccinati (`n_vaccinati`) e la loro età media (`eta_media`).
+
+<details>
+
+<summary style="text-decoration: underline; color: darkgreen;">
+
+`r fontawesome::fa("lightbulb", fill = "gold")` Clicca per leggere un suggerimento
+
+</summary>
+
+</br>
+
+Usa `group_by()` e `summarise()`, come nel Modulo 4: `n()` conta le righe di ogni gruppo e `mean()` calcola la media. Ricorda `na.rm = TRUE`: qualche persona non ha l'età.
+
+</br>
+
+</details>
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+# Vaccinati per giorno -----------------------------------------------------
+vaccinati_giorno <- dati_clean %>%
+  group_by(date_vacc) %>%
+  summarise(n_vaccinati = n(),
+            eta_media = mean(age, na.rm = TRUE),
+            .groups = "drop")
+
+```
+
+</br>
+
+</details>
+
+Nell'area di prova, fai un grafico di `vaccinati_giorno` con `geom_point()`, con la data di vaccinazione sull'asse x, il numero di vaccinati sull'asse y e il colore dei punti che dipende dall'età media.
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+ggplot(data = vaccinati_giorno, mapping = aes(x = date_vacc, y = n_vaccinati, color = eta_media)) +
+  geom_point()
+
+```
+
+</br>
+
+</details>
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+pacman::p_load(webexercises)
+
+opts <- c(
+  "Una persona vaccinata",
+  answer = "Un giorno della campagna vaccinale",
+  "Una regione",
+  "Una settimana della campagna vaccinale"
+)
+
+
+cat("Che cosa rappresenta ogni punto di questo grafico?", longmcq(opts))
+
+```
+:::
+::::
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+pacman::p_load(webexercises)
+
+opts <- c(
+  "Perché le scale continue funzionano solo con le date",
+  answer = "Perché eta_media è una variabile continua, che può assumere molti valori diversi",
+  "Perché eta_media non ha valori mancanti",
+  "Perché geom_point() usa sempre una scala continua"
+)
+
+
+cat("Nel Modulo 5, con hiv_status, una legenda continua era un problema. Perché qui invece va bene?", longmcq(opts))
+
+```
+:::
+::::
+
+### Palette continue
+
+Anche per le variabili continue esistono palette predefinite. La più usata è viridis, che hai già visto per le variabili discrete con `scale_fill_viridis_d()`: la versione continua termina con `_c`.
+
+Nell'area di prova, aggiungi al grafico `scale_color_viridis_c()` e, al suo posto, prova anche `scale_color_viridis_d()`.
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+# viridis continua
+ggplot(data = vaccinati_giorno, mapping = aes(x = date_vacc, y = n_vaccinati, color = eta_media)) +
+  geom_point() +
+  scale_color_viridis_c()
+
+# viridis discreta: errore
+# ggplot(data = vaccinati_giorno, mapping = aes(x = date_vacc, y = n_vaccinati, color = eta_media)) +
+#   geom_point() +
+#   scale_color_viridis_d()
+
+```
+
+</br>
+
+</details>
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+pacman::p_load(webexercises)
+
+opts <- c(
+  "Perché viridis non può essere usata per il colore dei punti",
+  "Perché eta_media contiene valori mancanti",
+  "Perché scale_color_viridis_d() richiede l'argomento option",
+  answer = "Perché eta_media è continua e la scala è discreta"
+)
+
+
+cat("Perché scale_color_viridis_d() produce un errore?", longmcq(opts))
+
+```
+:::
+::::
+
+### Gradiente scelto a mano
+
+Sempre nell'area di prova, sostituisci ora la palette viridis con un gradiente scelto a mano: `"lightyellow"` per il valore minimo e `"darkred"` per il valore massimo.
+
+<details>
+
+<summary style="text-decoration: underline; color: darkgreen;">
+
+`r fontawesome::fa("lightbulb", fill = "gold")` Clicca per leggere un suggerimento
+
+</summary>
+
+</br>
+
+Usa `scale_color_gradient()` con gli argomenti `low =` e `high =`.
+
+</br>
+
+</details>
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+ggplot(data = vaccinati_giorno, mapping = aes(x = date_vacc, y = n_vaccinati, color = eta_media)) +
+  geom_point() +
+  scale_color_gradient(
+    low = "lightyellow",
+    high = "darkred")
+
+```
+
+</br>
+
+</details>
+
+<!-- DIPENDE DAI DATI: età media per mese 46 (feb), 58 (mar), 62 (apr), 58 (mag), 51 (giu), 46 (lug) -->
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+pacman::p_load(webexercises)
+
+opts <- c(
+  "L'età media è la stessa per tutta la campagna",
+  "L'età media diminuisce in modo regolare dall'inizio alla fine della campagna",
+  answer = "L'età media è più alta in primavera e più bassa all'inizio e alla fine della campagna",
+  "L'età media è più alta nei giorni con più vaccinati"
+)
+
+
+cat("Che cosa mostra il colore dei punti?", longmcq(opts))
+
+```
+:::
+::::
+
+## Assi con le date
+
+Nel Modulo 5 hai già messo le date in italiano con `scale_x_date()`, `date_breaks =` e `scales::label_date()`. Ora lo fai sul grafico dei vaccinati per giorno, con una novità: l'anno su una seconda riga.
+
+Nella sezione "Vaccinati per giorno" dello script, riprendi il grafico con il gradiente scelto a mano e, con `scale_x_date()`, metti un'etichetta ogni mese, nel formato mese abbreviato e anno, con l'anno sotto il mese (es. "feb" sopra e "2021" sotto). Aggiungi infine le etichette con `labs()`.
+
+<details>
+
+<summary style="text-decoration: underline; color: darkgreen;">
+
+`r fontawesome::fa("lightbulb", fill = "gold")` Clicca per leggere un suggerimento
+
+</summary>
+
+</br>
+
+Nel formato di `scales::label_date()`, `\n` manda a capo: ad esempio `"%b\n%Y"`.
+
+</br>
+
+</details>
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+ggplot(data = vaccinati_giorno, mapping = aes(x = date_vacc, y = n_vaccinati, color = eta_media)) +
+  geom_point() +
+  scale_color_gradient(
+    low = "lightyellow",
+    high = "darkred") +
+  scale_x_date(
+    date_breaks = "1 month",
+    labels = scales::label_date("%b\n%Y", locale = "it")) +
+  labs(
+    title = "Vaccinati per giorno nel corso della campagna vaccinale",
+    x = "Data di vaccinazione",
+    y = "Numero di vaccinati",
+    color = "Età media (anni)")
+
+```
+
+</br>
+
+</details>
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+pacman::p_load(webexercises)
+
+opts <- c(
+  "R mostra l'errore 'lingua assi non specificata'",
+  "Viene mostrato solo l'anno",
+  answer = "Le date mostrate sono nella lingua di sistema",
+  "Le date sono in inglese, indipendentemente dal locale"
+)
+
+
+cat("Cosa accade se non si specifica 'locale = it'?", longmcq(opts))
+
+```
+:::
+::::
+
+## Assi
+
+### Breaks
+
+Esegui nell'area di prova `seq(from = 0, to = 30000, by = 5000)` per vedere il risultato. Poi fai un grafico a barre del numero di vaccinati per regione e usa `scale_y_continuous()` con l'argomento `breaks =` per avere un'interruzione ogni 5.000 vaccinati.
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+ggplot(data = dati_clean, mapping = aes(x = region)) +
+  geom_bar() +
+  scale_y_continuous(breaks = seq(from = 0, to = 30000, by = 5000))
+
+```
+
+</br>
+
+</details>
+
+### Barre orizzontali
+
+Nell'area di prova, rifai il grafico a barre per regione con le barre orizzontali, mappando `region` sull'asse y invece che sull'asse x. Aggiungi le etichette degli assi con `labs()`.
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+ggplot(data = dati_clean, mapping = aes(y = region)) +
+  geom_bar() +
+  labs(
+    x = "Numero di vaccinati",
+    y = "Regione")
+
+```
+
+</br>
+
+</details>
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+pacman::p_load(webexercises)
+
+opts <- c(
+  "scale_x_continuous(), perché le barre si leggono in orizzontale",
+  answer = "scale_x_continuous(), perché i conteggi ora sono sull'asse x",
+  "scale_y_continuous(), perché i conteggi restano sempre sull'asse y",
+  "scale_y_discrete(), perché le regioni ora sono sull'asse y"
+)
+
+
+cat("Nel grafico a barre orizzontali, con quale funzione modifichi le interruzioni dei conteggi?", longmcq(opts))
+
+```
+:::
+::::
+
+::: {.callout-tip appearance="default" icon="false"}
+## Approfondimento: `coord_flip()`
+
+Le barre orizzontali si possono ottenere anche in un altro modo: si fa il grafico a barre verticali, con la regione su `x`, e si aggiunge il livello `coord_flip()`, che scambia gli assi.
+
+```{r}
+#| eval: false
+ggplot(data = dati_clean, mapping = aes(x = region)) +
+  geom_bar() +
+  coord_flip() +
+  labs(
+    x = "Regione",
+    y = "Numero di vaccinati")
+```
+
+Il grafico è identico, ma attenzione alle etichette: in `labs()`, `x` e `y` si riferiscono alle estetiche scritte in `aes()`, non alla posizione finale degli assi. Per questo qui la regione resta `x` anche se compare sull'asse verticale.
+
+`coord_flip()` si trova spesso in codice e tutorial meno recenti. Oggi la documentazione di `{ggplot2}` consiglia di mappare direttamente la variabile su `y`, come abbiamo fatto noi: il codice è più semplice e le etichette corrispondono a quello che si vede.
+:::
+
+## Proporzioni e percentuali
+
+Nell'area di prova, crea un grafico a barre per regione con il riempimento per `age_group`, usando `position = "fill"` dentro `geom_bar()`. Poi mostra l'asse y in percentuale con `scale_y_continuous()` e l'argomento `labels = scales::label_percent()`.
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+# proporzioni
+ggplot(data = dati_clean, mapping = aes(x = region, fill = age_group)) +
+  geom_bar(position = "fill")
+
+# percentuali
+ggplot(data = dati_clean, mapping = aes(x = region, fill = age_group)) +
+  geom_bar(position = "fill") +
+  scale_y_continuous(labels = scales::label_percent())
+
+```
+
+</br>
+
+</details>
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+pacman::p_load(webexercises)
+
+opts <- c(
+  answer = "No, cambiano solo le etichette dell'asse",
+  "Sì, i valori vengono moltiplicati per 100",
+  "Sì, le proporzioni diventano testo con il simbolo %",
+  "No, ma i valori vengono arrotondati all'intero"
+)
+
+
+cat("label_percent() modifica i valori dei dati?", longmcq(opts))
+
+```
+:::
+::::
+
+Sopra l'area di prova, crea una nuova sezione (**Ctrl+Shift+R**) che si chiamerà "Percentuali".
+
+Al grafico delle barre impilate al 100% aggiungi una didascalia (`caption`) su tre righe che riporti:
+
+-   il numero di vaccinati
+-   il numero di persone con HIV
+-   la data in cui è stato prodotto il grafico
+
+I numeri e la data devono essere calcolati dal codice, non scritti a mano.
+
+<details>
+
+<summary style="text-decoration: underline; color: darkgreen;">
+
+`r fontawesome::fa("lightbulb", fill = "gold")` Clicca per leggere un suggerimento
+
+</summary>
+
+</br>
+
+`paste0()` unisce testo e risultati del codice in un'unica stringa, e `"\n"` manda a capo. Prova prima in console `paste0("n = ", nrow(dati_clean), " vaccinati")`. Per contare le persone con HIV usa `sum(dati_clean$hiv == "Con HIV")`: la somma di una condizione conta i `TRUE`. Per la data usa `Sys.Date()`.
+
+</br>
+
+</details>
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+# Percentuali ----------------------------------------------------------
+ggplot(data = dati_clean, mapping = aes(x = region, fill = age_group)) +
+  geom_bar(position = "fill") +
+  scale_y_continuous(labels = scales::label_percent()) +
+  labs(
+    caption =
+      paste0("n = ", nrow(dati_clean), " vaccinati", "\n",
+             sum(dati_clean$hiv == "Con HIV"), " persone con HIV", "\n",
+             "Grafico prodotto il ", Sys.Date()))
+
+```
+
+</br>
+
+</details>
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+pacman::p_load(webexercises)
+
+opts <- c(
+  "Perché il grafico viene prodotto più velocemente",
+  "Perché caption non accetta testo scritto a mano",
+  "Perché paste0() rende le etichette più leggibili",
+  answer = "Perché la didascalia si aggiorna se cambiano i dati"
+)
+
+
+cat("Perché conviene calcolare i numeri della didascalia invece di scriverli a mano?", longmcq(opts))
+
+```
+:::
+::::
+
+## I temi del grafico
+
+L'aspetto generale del grafico (lo sfondo, la griglia, gli assi, i caratteri) si cambia con un **tema**. I temi completi sono funzioni che iniziano con `theme_` e si aggiungono come un livello qualsiasi, con `+`. Non cambiano i dati né le estetiche, ma solo l'aspetto di ciò che sta intorno. I più usati sono:
+
+-   `theme_grey()`: il tema di default, con sfondo grigio e griglia bianca. È quello che hai visto finora;
+-   `theme_bw()`: sfondo bianco, griglia grigio chiaro e un bordo intorno al grafico. È una buona scelta per stampe e documenti;
+-   `theme_classic()`: sfondo bianco, senza griglia, con le sole linee degli assi x e y. Ricorda i grafici delle riviste scientifiche;
+-   `theme_minimal()`: sfondo bianco, griglia leggera e nessun bordo né linea degli assi. È essenziale e adatto alle presentazioni;
+-   `theme_void()`: toglie tutto, cioè assi, griglia, etichette e sfondo, e lascia solo i dati. Serve per grafici in cui gli assi non hanno significato, come le mappe.
+
+::: {.callout-tip appearance="default" icon="false"}
+## Approfondimento: `base_size`
+
+Tutti i temi hanno l'argomento `base_size`, che regola la dimensione dei caratteri, per esempio `theme_bw(base_size = 14)`.
+
+:::
+
+Nell'area di prova, crea un grafico a barre impilate al 100% per regione con il riempimento per `age_group`, usando `position = "fill"` dentro `geom_bar()`, come fatto precedentemente. Poi aggiungi, uno alla volta, i temi `theme_bw()`, `theme_classic()`, `theme_minimal()` e `theme_void()`. Infine prova `theme_minimal(base_size = 16)`.
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+# theme_bw()
+ggplot(data = dati_clean, mapping = aes(x = region, fill = age_group)) +
+  geom_bar(position = "fill") +
+  scale_y_continuous(labels = scales::label_percent()) +
+  theme_bw()
+
+# theme_classic()
+ggplot(data = dati_clean, mapping = aes(x = region, fill = age_group)) +
+  geom_bar(position = "fill") +
+  scale_y_continuous(labels = scales::label_percent()) +
+  theme_classic()
+
+# theme_minimal()
+ggplot(data = dati_clean, mapping = aes(x = region, fill = age_group)) +
+  geom_bar(position = "fill") +
+  scale_y_continuous(labels = scales::label_percent()) +
+  theme_minimal()
+
+# theme_void()
+ggplot(data = dati_clean, mapping = aes(x = region, fill = age_group)) +
+  geom_bar(position = "fill") +
+  scale_y_continuous(labels = scales::label_percent()) +
+  theme_void()
+
+# theme_minimal(base_size = 16)
+ggplot(data = dati_clean, mapping = aes(x = region, fill = age_group)) +
+  geom_bar(position = "fill") +
+  scale_y_continuous(labels = scales::label_percent()) +
+  theme_minimal(base_size = 16)
+
+```
+
+</br>
+
+</details>
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+pacman::p_load(webexercises)
+
+opts <- c(
+  "I colori delle barre e delle legende",
+  answer = "Gli elementi che non dipendono dai dati",
+  "L'ordine delle categorie sugli assi",
+  "Le proporzioni rappresentate dalle barre"
+)
+
+
+cat("Cosa modifica un tema completo come theme_minimal()?", longmcq(opts))
+
+```
+:::
+::::
+
+::: {.callout-tip appearance="default" icon="false"}
+## Approfondimento: aggiungere livelli a un grafico salvato
+
+Un grafico salvato in un oggetto si può riprendere e arricchire con `+`, senza riscrivere tutto il codice. Ad esempio, possiamo salvare il grafico:
+
+```{r}
+#| eval: false
+grafico_regioni <- ggplot(data = dati_clean, mapping = aes(x = region, fill = age_group)) +
+  geom_bar(position = "fill") +
+  scale_y_continuous(labels = scales::label_percent())
+```
+
+e poi provare temi diversi, aggiungendoli all'oggetto:
+
+```{r}
+#| eval: false
+grafico_regioni + theme_bw()
+grafico_regioni + theme_classic()
+grafico_regioni + theme_minimal()
+```
+
+In questo modo il grafico di base si scrive una sola volta e si confrontano facilmente le versioni.
+
+`grafico_regioni + theme_bw()` mostra il grafico con il nuovo tema, ma non modifica l'oggetto: `grafico_regioni` resta con il tema di default. Per conservare la modifica bisogna salvarla di nuovo con `<-`, per esempio `grafico_regioni <- grafico_regioni + theme_bw()`.
+:::
+
+I temi predefiniti possono anche essere modificati a mano, ad esempio possiamo partire da `theme_minimal()` e aggiungere e personalizzare dettagli estetici al nostro grafico utilizzando `theme()`. 
+
+Sopra l'area di prova, crea una nuova sezione (**Ctrl+Shift+R**) che si chiamerà "Modificare il tema".
+
+Partendo dal grafico precedente (barre impilate al 100% per regione con il riempimento per `age_group`, usando `position = "fill"` dentro `geom_bar()`), aggiungi il tema `theme_minimal()` e poi `theme()` con queste modifiche:
+
+-   legenda in basso (`legend.position = "bottom"`)
+-   nomi degli assi in grassetto (`axis.title = element_text(face = "bold")`)
+-   niente griglia secondaria (`panel.grid.minor = element_blank()`)
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+# Modificare il tema ----------------------------------------------------------
+ggplot(data = dati_clean, mapping = aes(x = region, fill = age_group)) +
+  geom_bar(position = "fill") +
+  scale_y_continuous(labels = scales::label_percent()) +
+  theme_minimal() +
+  theme(
+    legend.position = "bottom",                     # legenda in basso
+    axis.title = element_text(face = "bold"),       # nomi assi in grassetto
+    panel.grid.minor = element_blank())             # niente griglia secondaria
+
+```
+
+</br>
+
+</details>
+::: {.callout-warning appearance="default" icon="false"}
+## Attenzione all'ordine tra `theme()` e i temi completi
+
+Un tema completo come `theme_minimal()` non aggiunge solo qualche modifica: **ridefinisce tutto l'aspetto del grafico**. Se lo scrivi dopo `theme()`, cancella le personalizzazioni fatte prima. R non dà né errori né warning: il grafico viene disegnato, semplicemente senza le tue modifiche. Per questo conviene controllare sempre il risultato.
+
+
+La regola è: **prima il tema completo, poi `theme()`** per le modifiche.
+:::
+
+## Lo script completo
+
+Ecco come dovrebbe essere il tuo script per questa esercitazione, con le soluzioni di tutti gli esercizi divise per sezione. Confrontalo con il tuo: i commenti e alcuni dettagli possono essere diversi, ma i comandi devono fare le stesse cose. Lo script completo dei Moduli 5, 6 e 8 lo trovi anche nella cartella `script/backup`, nel file `backup_plot.R`.
+
+<details>
+
+<summary style="text-decoration: underline; color: blue;">
+
+`r fontawesome::fa("check", fill = "blue")` Clicca per vedere lo script
+completo
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+#| eval: false
+
+# Modulo 06 - Data Visualization con ggplot2 (Parte 2) =====================
+
+# Colori scelti a mano -----------------------------------------------------
+ggplot(data = dati_clean, mapping = aes(x = region, fill = hiv, color = hiv)) +
+  geom_bar(alpha = 0.5) +
+  geom_point(stat = "count", position = "stack", size = 3) +
+  scale_fill_manual(
+    name = "Stato HIV",                             # titolo della legenda
+    values = c(                                     # colori
+      "Senza HIV" = "#2a9d8f",
+      "Con HIV"   = "#e76f51"),
+    breaks = c("Con HIV", "Senza HIV"),             # livelli e ordine in legenda
+    labels = c(                                     # testo in legenda
+      "Con HIV"   = "Persone con HIV",
+      "Senza HIV" = "Controlli"),
+    aesthetics = c("fill", "color"))                # estetiche coinvolte
+
+# Palette predefinite ------------------------------------------------------
+ggplot(data = dati_clean, mapping = aes(x = region, fill = chrls_index)) +
+  geom_bar() +
+  scale_fill_viridis_d()
+
+# Vaccinati per giorno -----------------------------------------------------
+vaccinati_giorno <- dati_clean %>%
+  group_by(date_vacc) %>%
+  summarise(n_vaccinati = n(),
+            eta_media = mean(age, na.rm = TRUE),
+            .groups = "drop")
+
+ggplot(data = vaccinati_giorno, mapping = aes(x = date_vacc, y = n_vaccinati, color = eta_media)) +
+  geom_point() +
+  scale_color_gradient(
+    low = "lightyellow",
+    high = "darkred") +
+  scale_x_date(
+    date_breaks = "1 month",
+    labels = scales::label_date("%b\n%Y", locale = "it")) +
+  labs(
+    title = "Vaccinati per giorno nel corso della campagna vaccinale",
+    x = "Data di vaccinazione",
+    y = "Numero di vaccinati",
+    color = "Età media (anni)")
+
+# Percentuali --------------------------------------------------------------
+ggplot(data = dati_clean, mapping = aes(x = region, fill = age_group)) +
+  geom_bar(position = "fill") +
+  scale_y_continuous(labels = scales::label_percent()) +
+  labs(
+    caption =
+      paste0("n = ", nrow(dati_clean), " vaccinati", "\n",
+             sum(dati_clean$hiv == "Con HIV"), " persone con HIV", "\n",
+             "Grafico prodotto il ", Sys.Date()))
+
+# Modificare il tema -------------------------------------------------------
+ggplot(data = dati_clean, mapping = aes(x = region, fill = age_group)) +
+  geom_bar(position = "fill") +
+  scale_y_continuous(labels = scales::label_percent()) +
+  theme_minimal() +
+  theme(
+    legend.position = "bottom",                     # legenda in basso
+    axis.title = element_text(face = "bold"),       # nomi assi in grassetto
+    panel.grid.minor = element_blank())             # niente griglia secondaria
+
+```
+
+</br>
+
+</details>
+
+## Riepilogo
+
+-   Le funzioni `scale_<estetica>_<metodo>()` modificano il modo in cui un'estetica viene rappresentata: colori, assi, date
+-   `scale_fill_manual()` e `scale_color_manual()` assegnano i colori a mano: i nomi nel vettore devono corrispondere esattamente ai livelli; il colore degli NA si sceglie con `na.value =`; `name =`, `breaks =` e `labels =` modificano la legenda, `aesthetics = c("fill", "color")` applica la stessa scala a entrambe le estetiche
+-   `scale_*_brewer()` e `scale_*_viridis_d()` sono palette predefinite per variabili discrete; `scale_*_viridis_c()` e `scale_*_gradient()` per variabili continue
+-   `scale_y_continuous()` con `breaks =` per gli assi continui; `scale_x_date()` per le date, con `\n` nel formato per andare a capo; `position = "fill"` e `scales::label_percent()` per le percentuali
+-   `paste0()` dentro `labs()` per didascalie che si aggiornano con i dati
+-   I temi completi (`theme_minimal()`, `theme_bw()`, ...) cambiano gli elementi che non dipendono dai dati; `theme()` va aggiunto **dopo** il tema completo
+
+## Risorse aggiuntive
+
+-   Documentazione di `{ggplot2}`: <https://ggplot2.tidyverse.org/reference/>
+-   Elementi di `theme()`: <https://ggplot2.tidyverse.org/reference/theme.html>
+-   Documentazione di `{scales}`: <https://scales.r-lib.org/reference/>
+-   Cheat sheet di `{ggplot2}`: <https://rstudio.github.io/cheatsheets/html/data-visualization.html>
+
+<!-- **Autori** -->
+
+<!-- Autori originali: Nome Cognome (Istituzione), Nome Cognome -->
+<!-- (Istituzione)\ -->
+<!-- Fonte dei dati: [DA COMPLETARE: origine del dataset dati_clean] coorte di -->
+<!-- persone vaccinate con e senza HIV; esercizi ispirati al modulo -->
+<!-- *Scales and themes in ggplot2* di Applied Epi (<https://appliedepi.org>)\ -->
+<!-- Adattato da: Nome Cognome (Istituzione), Nome Cognome (Istituzione) -->
+
+<!-- ### Termini di utilizzo -->
+
+<!-- **Disclaimer**: [DA COMPLETARE: indicare se e come i dati sono stati -->
+<!-- modificati rispetto ai dati originali per finalità didattiche.] -->
+
+<!-- Sei libero di: -->
+
+<!-- -   **Condividere**: copiare e distribuire il materiale -->
+<!-- -   **Remixare**: adattare e costruire nuovo materiale a partire da -->
+<!--     questo -->
+
+<!-- Alle seguenti condizioni: -->
+
+<!-- -   **Attribuzione**: devi attribuire il materiale nel modo specificato -->
+<!--     dall'autore o dal licenziante (ma non in un modo che suggerisca che -->
+<!--     essi avallino te o il tuo utilizzo dell'opera). Il modo migliore per -->
+<!--     farlo è mantenere invariato l'elenco dei contributori: fonti, autori -->
+<!--     e revisori. -->
+<!-- -   **Condividi allo stesso modo**: se modifichi, trasformi o costruisci -->
+<!--     nuovo materiale a partire da questo, puoi distribuire il risultato -->
+<!--     solo con una licenza uguale o simile a questa. Le modifiche -->
+<!--     apportate devono essere documentate. A questa condizione, puoi -->
+<!--     aggiungere il tuo nome all'elenco dei contributori. -->
+<!-- -   **Notifica**: se utilizzi il materiale nel modo specificato -->
+<!--     dall'autore o dal licenziante, scrivi a -->
+<!--     [nome\@iss.it](mailto:nome@iss.it) -->
+<!-- -   Non puoi vendere questo materiale da solo, ma puoi utilizzarlo come -->
+<!--     parte di un'attività didattica. -->
+
+<!-- Resta inteso che: -->
+
+<!-- -   **Rinuncia**: una qualsiasi delle condizioni sopra può essere -->
+<!--     derogata previa autorizzazione del titolare dei diritti d'autore. -->
+<!-- -   **Pubblico dominio**: se l'opera, o un suo elemento, è di pubblico -->
+<!--     dominio ai sensi della legge applicabile, tale condizione non è in -->
+<!--     alcun modo modificata dalla licenza. -->
+<!-- -   **Altri diritti**: la licenza non pregiudica in alcun modo i -->
+<!--     seguenti diritti: -->
+<!--     -   il diritto di utilizzo corretto ("fair dealing"/"fair use"), o -->
+<!--         altre eccezioni e limitazioni al diritto d'autore applicabili; -->
+<!--     -   i diritti morali dell'autore; -->
+<!--     -   i diritti che altre persone possono avere sull'opera stessa o -->
+<!--         sul modo in cui viene utilizzata, come i diritti di immagine o -->
+<!--         di riservatezza. -->
+<!-- -   **Avviso**: per qualsiasi riutilizzo o distribuzione, devi rendere -->
+<!--     chiari agli altri i termini della licenza di questo materiale, -->
+<!--     mantenendo insieme l'opera e la licenza corrente. -->
+
+<!-- Questa licenza si basa su -->
+<!-- <http://creativecommons.org/licenses/by-sa/3.0/> -->
+
+<!-- ### Versione e revisioni -->
+
+<!-- Data della prima versione:  -->
+<!-- | Data | Modifiche apportate | Autore | -->
+<!-- |------|---------------------|--------| -->
+<!-- |      |                     |        | -->

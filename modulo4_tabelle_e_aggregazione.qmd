@@ -1,0 +1,2682 @@
+---
+output: html_document
+editor_options:
+  chunk_output_type: console
+execute:
+  warning: false
+  error: false
+knitr:
+  opts_chunk:
+    comment: ""
+format:
+  html:
+    css: webex.css
+    include-after-body: webex.js
+    df-print: default
+    toc: true
+    toc-depth: 4
+    toc-expand: 1
+editor:
+  markdown:
+    wrap: 72
+title: |
+  ![](immagini/logo_dmi.png){width=3in}
+---
+
+```{r}
+#| include: false
+pacman::p_load(
+  rio,
+  skimr,
+  janitor,
+  lubridate,
+  epikit,
+  gtsummary,
+  flextable,
+  tidyverse,
+  webexercises
+)
+
+# dataset pulito fornito ai partecipanti (nel corso: dati/dati_clean.rds)
+# dati/ accanto al qmd (cartella corso_R_2026) oppure un livello sopra (ModuloN/)
+percorso_dati <- if (file.exists("dati/dati_clean.rds")) "dati/dati_clean.rds" else "../dati/dati_clean.rds"
+dati_clean <- import(percorso_dati)
+```
+
+```{=html}
+<!-- ============================================================
+     NOTE PER IL DOCENTE (non compaiono nell'HTML)
+     - Esercitazione del pomeriggio del giorno 2: i partecipanti
+       creano un nuovo script, script/tabelle_grouping.R, che inizia
+       con i pacchetti e l'importazione di dati/dati_clean.rds (il file
+       fornito da noi, non il loro dati_clean_NOME.rds).
+     - Tempo previsto: 90 minuti. Il tempo stimato di ogni sezione è
+       indicato in un commento all'inizio della sezione. Le stime
+       sommano a circa 112 minuti. Se in aula il tempo non basta, le
+       parti più sacrificabili sono "Due variabili", "Totali di riga e
+       di colonna" (circa 3 minuti) e "Follow-up per stato HIV". Da non togliere: "Tassi per classe d'età e stato
+       HIV", che produce tassi_eta_hiv.rds per il modulo 9 (ai
+       partecipanti non lo diciamo, per non anticipare).
+     - Nello script restano solo gli oggetti da tenere (tab_sesso,
+       tab_regione, tab_hiv_eta, tassi_eta, quota_hiv_eta, sintesi_hiv,
+       tab_sintesi_hiv, tassi_eta_hiv); tutti gli altri comandi si
+       scrivono nell'area di prova.
+     - I commenti "DIPENDE DAI DATI" segnalano testi o domande da
+       ricontrollare se cambia il dataset. Le risposte delle domande
+       con risposta calcolata si aggiornano da sole.
+     - Dataset: dati_clean (dati/dati_clean.rds),
+       versione del 13/11/2026: 47.717 persone, 18 variabili;
+       fu_days, event 0/1 e age_cat già presenti; NA in sex 2,
+       age 5, age_cat 5; region e hiv_status senza NA (esclusi nel
+       filtro del Modulo 3).
+       anticorpi (BAU/mL, simulati) senza NA; cd4 (cellule/mm³)
+       solo per le persone con HIV, NA per tutte le 31.693 senza
+       HIV. cd4 non è usata negli esercizi.
+     ============================================================ -->
+```
+
+# **Corso introduttivo al software statistico R**
+
+# Modulo 04 Tabelle e aggregazione dati
+
+## Obiettivi del modulo
+
+-   Contare le osservazioni e calcolare frequenze assolute e percentuali
+    con `count()` e `tabyl()`
+-   Costruire tabelle a una e a due entrate con totali e percentuali di
+    riga o di colonna, usando le funzioni `adorn_*()`
+-   Calcolare statistiche di sintesi, anche per gruppo, con `group_by()`
+    e `summarise()`
+-   Gestire i valori mancanti con `na.rm` e i raggruppamenti con
+    `.groups` e `ungroup()`
+-   Costruire una tabella riassuntiva per gruppo e salvarla in un nuovo
+    oggetto
+-   Distinguere le tabelle per esplorare i dati, i dataset aggregati e
+    le tabelle da presentare, e presentare una tabella con `{flextable}`
+
+## Formato dell'esercizio
+
+<!-- Il paragrafo sotto è fisso: -->
+
+Questo esercizio è progettato per essere una guida e per aiutarti a
+completarlo in autonomia. Ti consigliamo fortemente di provare a
+eseguire il codice prima di guardare le soluzioni. Per aiutarti, abbiamo
+incluso in alcuni punti dei suggerimenti che possono indirizzarti nella
+direzione giusta. Li troverai così:
+
+```{=html}
+<!-- ISTRUZIONI: Questo blocco "Suggerimento" va inserito ogni volta 
+     che vuoi dare un aiuto parziale allo studente senza svelare 
+     subito la soluzione (es. il nome di una funzione da usare, o un 
+     argomento a cui prestare attenzione). Copia l'intero blocco 
+     <details>...</details> e modifica solo il testo dopo </br>. -->
+```
+
+<details>
+
+<summary style="text-decoration: underline; color: darkgreen;">
+
+`r fontawesome::fa("lightbulb", fill = "gold")` Clicca per leggere un
+suggerimento
+
+</summary>
+
+</br>
+
+Questo è un suggerimento.
+
+</br>
+
+</details>
+
+Le soluzioni, invece, avranno questo aspetto:
+
+```{=html}
+<!-- ISTRUZIONI: Questo blocco "Soluzione" va inserito alla fine di 
+     ogni esercizio (o sotto-punto) e deve contenere codice R 
+     eseguibile e commentato. Copia l'intero blocco 
+     <details>...</details> e sostituisci il codice di esempio. Se la 
+     soluzione richiede più passaggi, aggiungi commenti # nel codice 
+     per spiegare ogni passaggio. Ricorda: niente etichette (label) 
+     nei chunk, come indicato nelle istruzioni generali. -->
+```
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+print("Questo è un esempio di soluzione")
+
+```
+
+</br>
+
+</details>
+
+Durante l'esercizio troverai anche domande a risposta multipla, che
+servono a verificare se stai seguendo correttamente lo svolgimento. Le
+domande saranno simili a questa:
+
+```{=html}
+<!-- ISTRUZIONI: Questo blocco "Domanda" usa il pacchetto 
+     `{webexercises}` per creare quiz a risposta multipla 
+     auto-correttivi. Copia l'intero blocco ::: {.callout-note}...::: 
+     e:
+       - scrivi le opzioni di risposta nel vettore "opts"
+       - indica la risposta corretta con answer = "..."
+       - scrivi il testo della domanda dentro cat("Domanda: ...")
+     Inserisci una domanda ogni volta che vuoi far verificare allo 
+     studente di aver capito un concetto chiave prima di proseguire. -->
+```
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+pacman::p_load(webexercises)
+
+opts <- c(
+  "2",
+  "5",
+  answer = "4"
+)
+
+
+cat("Domanda di esempio: quanto fa 2 + 2?", longmcq(opts))
+
+```
+:::
+::::
+
+Lungo il modulo troverai anche due tipi di riquadri colorati. I riquadri
+**gialli** segnalano errori frequenti o punti in cui R si comporta in
+modo inatteso: leggili sempre, perché possono farti risparmiare tempo.
+
+```{=html}
+<!-- ISTRUZIONI: Il box giallo "Attenzione a …" va usato per avvisi
+     importanti: errori comuni, comportamenti di R che possono
+     sorprendere, passaggi da non saltare. Il titolo inizia sempre con
+     "Attenzione a" (es. "Attenzione ai nomi con spazi"). Copia
+     l'intero blocco ::: {.callout-warning ...} ... ::: e modifica
+     solo titolo e testo. -->
+```
+
+::: {.callout-warning appearance="default" icon="false"}
+## Attenzione a …
+
+Questo è un esempio di riquadro di attenzione.
+:::
+
+I riquadri **verdi** contengono invece approfondimenti facoltativi, per
+chi vuole andare un po' oltre: puoi saltarli senza perdere il filo
+dell'esercizio e tornarci in un secondo momento.
+
+```{=html}
+<!-- ISTRUZIONI: Il box verde "Approfondimento: …" va usato per
+     contenuti facoltativi: funzioni alternative, scorciatoie, casi
+     più avanzati. Lo studente deve poter completare l'esercizio anche
+     senza leggerlo. Il titolo inizia sempre con "Approfondimento:"
+     (es. "Approfondimento: gestire le date in R"). Copia l'intero
+     blocco ::: {.callout-tip ...} ... ::: e modifica solo titolo e
+     testo. -->
+```
+
+::: {.callout-tip appearance="default" icon="false"}
+## Approfondimento: …
+
+Questo è un esempio di riquadro di approfondimento.
+:::
+
+Ti consigliamo di provare comunque a rispondere e a eseguire il codice
+da solo prima di consultare suggerimenti e soluzioni: è così che si
+impara davvero a usare R.
+
+## Preparazione
+
+Oggi pomeriggio inizierai uno script nuovo, dedicato alle tabelle. Se
+hai chiuso RStudio, riapri il progetto del corso. Poi crea un nuovo
+script (*File -> New File -> R Script*) e salvalo nella cartella
+`script` con il nome `tabelle_grouping`.
+
+Come nel Modulo 1, inizia lo script con alcuni commenti: nome e cognome,
+obiettivo dello script, email e data. Poi crea la sezione "Caricamento
+pacchetti" con la combinazione di tasti **Ctrl + Shift + R** (**Cmd +
+Shift + R** su Mac) e copiaci il comando `pacman::p_load()` che hai
+scritto nello script `pulizia_dati.R`. Eseguilo.
+
+Ricordati di salvare spesso il lavoro (**Ctrl + S**, oppure **Cmd + S**
+su Mac).
+
+## Iniziamo!
+
+`r fontawesome::fa("play", fill = "darkgreen")` **Da qui comincia
+l'esercitazione.**
+
+## Il punto di partenza
+
+<!-- Tempo stimato: 5 minuti -->
+
+### I dati
+
+In questo modulo usiamo i dati puliti nel Modulo 3. Nella cartella
+`dati` ci sono due versioni: il file che hai salvato tu
+(`dati_clean_` seguito dal tuo nome) e `dati_clean.rds`, preparato da
+noi. Da qui in avanti useremo sempre `dati_clean.rds`: così tutti
+lavoriamo sugli stessi dati puliti.
+
+Nello script crea la sezione "Importazione dati" (**Ctrl+Shift+R**) e
+importa il file `dati_clean.rds` con `import()`, chiamando il dataset
+`dati_clean`. Il formato RDS conserva le classi delle variabili: le date
+sono già date, e non serve rifare le conversioni.
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+#| eval: false
+
+# Importazione dati -------------------------------------------------------
+dati_clean <- import("dati/dati_clean.rds")
+```
+
+</br>
+
+</details>
+
+Su che dati stiamo lavorando? Facciamo di nuovo mente locale:
+`dati_clean` è la coorte di persone vaccinate contro COVID-19 che ci
+accompagna in tutto il corso, con persone con HIV (`hiv_status` uguale
+a 1) e persone senza HIV (`hiv_status` uguale a 0). Ogni riga del data
+frame è una persona.
+
+| Variabile | Descrizione |
+|--------------------|----------------------------------------------------|
+| `id_subject` | identificativo della persona |
+| `group` | codice di gruppo (non lo useremo in questo modulo) |
+| `region` | regione di vaccinazione (A, B, C, D) |
+| `sex` | sesso (M, F) |
+| `age` | età alla vaccinazione (anni) |
+| `age_group` | classe d'età (18-59, 60+) |
+| `age_cat` | classe d'età di 10 anni (18-29, 30-39, …, 80+) |
+| `chrls_score` | punteggio di comorbidità di Charlson (da 0 a 7) |
+| `chrls_index` | indice di Charlson in classi (0, 1-2, 3-4, 5+) |
+| `hiv_status` | 0 = senza HIV; 1 = con HIV |
+| `hiv` | stato HIV come fattore ("Senza HIV", "Con HIV") |
+| `date_vacc` | data di vaccinazione |
+| `date_end_fu` | data di fine follow-up |
+| `date_event` | data della diagnosi di COVID-19, se avvenuta (altrimenti `NA`) |
+| `fu_days` | giorni di follow-up |
+| `event` | 1 se c'è stata la diagnosi di COVID-19 durante il follow-up, 0 altrimenti |
+| `anticorpi` | livello di anticorpi anti-SARS-CoV-2 (BAU/mL) |
+| `cd4` | conta dei linfociti CD4 (cellule/mm³) |
+
+### Un nuovo pacchetto: `{flextable}`
+
+Alla fine del modulo presenterai una tabella con il pacchetto
+`{flextable}`, che non hai ancora caricato. Aggiungilo all'elenco dei
+pacchetti nel comando `pacman::p_load()`, nella sezione "Caricamento
+pacchetti", ed esegui di nuovo il comando.
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+#| eval: false
+
+# Caricamento pacchetti ---------------------------------------------------
+pacman::p_load(
+  rio,       # importazione ed esportazione dei dati
+  skimr,     # panoramica dei dati
+  janitor,   # pulizia dei dati e tabelle
+  lubridate, # lavorare con le date
+  epikit,    # classi di età
+  gtsummary, # tabelle descrittive
+  flextable, # tabelle da presentare
+  tidyverse  # gestione e visualizzazione dei dati
+)
+```
+
+</br>
+
+</details>
+
+### L'area di prova
+
+Come nei moduli precedenti, aggiungi in fondo allo script una nuova
+sezione, "Area di prova" (**Ctrl+Shift+R**). Le sezioni che creerai più
+avanti vanno inserite sopra l'area di prova, così che resti sempre
+l'ultima sezione dello script.
+
+In ogni esercizio ti indicheremo quando lavorare nell'area di prova.
+
+## Contare con `count()`
+
+<!-- Tempo stimato: 10 minuti -->
+
+### Conteggi semplici
+
+Ci sono tanti modi per costruire una tabella in R. Il primo che vediamo
+è `count()` del pacchetto `{dplyr}`: conta quante righe ci sono per
+ciascun valore di una variabile e restituisce un piccolo data frame, con
+una riga per ogni valore e una colonna `n` con il conteggio. Si scrive
+dopo il dataset, collegata con `%>%`, e tra le parentesi si indica la
+variabile da contare:
+
+```{r}
+#| eval: false
+dati_clean %>%
+  count(VARIABILE)
+```
+
+Proviamo a usarla. Nell'area di prova, conta quante persone con e senza
+HIV ci sono nella coorte (`hiv_status`). Poi, allo stesso modo, conta le
+persone per sesso (`sex`) e per regione (`region`).
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+dati_clean %>%
+  count(hiv_status)
+
+dati_clean %>%
+  count(sex)
+
+dati_clean %>%
+  count(region)
+
+```
+
+</br>
+
+</details>
+
+<!-- La risposta corretta è calcolata dai dati -->
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+n_hiv <- sum(dati_clean$hiv_status == 1, na.rm = TRUE)
+n_no_hiv <- sum(dati_clean$hiv_status == 0, na.rm = TRUE)
+fmt <- function(x) format(x, big.mark = ".", decimal.mark = ",")
+
+opts <- c(fmt(n_no_hiv), fmt(n_hiv), fmt(nrow(dati_clean)), fmt(round(n_hiv / 2)))
+names(opts) <- c("", "answer", "", "")
+
+cat("Quante persone con HIV ci sono nel dataset?", longmcq(opts))
+```
+:::
+::::
+
+<!-- DIPENDE DAI DATI: presuppone NA in sex e nessun NA in hiv_status e region -->
+
+::: {.callout-warning appearance="default" icon="false"}
+## Attenzione alla riga `NA` nei conteggi
+
+Nel conteggio per sesso compare anche una riga `NA`: sono le poche
+persone per cui, nel Modulo 2, i codici non validi sono stati trasformati
+in valori mancanti. `count()` le conta come una categoria a parte, così
+non spariscono senza che te ne accorga. Lo stesso farà `group_by()` più
+avanti. Nei conteggi per stato HIV e per regione, invece, la riga `NA`
+non c'è: le persone con questi valori mancanti sono state escluse con
+`filter()` nel Modulo 3.
+:::
+
+### Ordinare i conteggi
+
+Nella tabella delle regioni le righe sono in ordine alfabetico. Spesso
+però è più utile vedere per prime le categorie più frequenti: per questo
+`count()` ha l'argomento `sort`. Con `sort = TRUE` le righe vengono
+ordinate dalla più frequente alla meno frequente.
+
+Nell'area di prova, ripeti il conteggio per regione ordinando il
+risultato dalla regione più frequente alla meno frequente.
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+dati_clean %>%
+  count(region, sort = TRUE)
+
+```
+
+</br>
+
+</details>
+
+### Dai conteggi alle percentuali
+
+`count()` dà solo i conteggi. Per avere anche le percentuali bisogna
+crearle noi, aggiungendo una nuova variabile alla tabella: come hai
+visto nei moduli precedenti, una nuova variabile si crea con `mutate()`,
+che si scrive dopo `count()`, collegata con `%>%`.
+
+Partendo dal conteggio per sesso, aggiungi una variabile `perc` con la
+percentuale di ciascuna categoria, arrotondata a una cifra decimale. Per
+arrotondare usa `round()`: il primo argomento è il numero da
+arrotondare, il secondo il numero di cifre decimali, per esempio
+`round(x, 1)`.
+
+Questa tabella è un risultato che vogliamo tenere: nello script, sopra
+l'area di prova, crea la sezione "Tabelle di frequenza"
+(**Ctrl+Shift+R**) e salva la tabella in un oggetto chiamato
+`tab_sesso`, con l'operatore di assegnazione `<-`. Poi trova `tab_sesso`
+nel pannello **Environment** e stampalo nella console.
+
+<details>
+
+<summary style="text-decoration: underline; color: darkgreen;">
+
+`r fontawesome::fa("lightbulb", fill = "gold")` Clicca per leggere un
+suggerimento
+
+</summary>
+
+</br>
+
+-   Dentro `mutate()` scrivi `perc = ...`: la percentuale di ciascuna
+    categoria è il suo conteggio diviso per il totale, per 100, cioè
+    `n / sum(n) * 100`. `sum(n)` somma tutti i valori della colonna `n`.
+-   Per vedere la tabella salvata, esegui il nome dell'oggetto.
+
+</br>
+
+</details>
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+# Tabelle di frequenza ----------------------------------------------------
+tab_sesso <- dati_clean %>%
+  count(sex) %>%
+  mutate(perc = round(n / sum(n) * 100, 1))
+
+# Per vedere la tabella, esegui il nome dell'oggetto
+tab_sesso
+
+```
+
+</br>
+
+</details>
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+opts <- c(
+  "Il numero di variabili della tabella",
+  "Il numero di persone con sesso femminile",
+  answer = "Il totale della variabile `n`, cioè tutte le persone contate",
+  "La media dei conteggi"
+)
+
+cat("Che cosa calcola `sum(n)` dentro `mutate()`?", longmcq(opts))
+```
+:::
+::::
+
+### Due variabili
+
+Come dobbiamo muoverci quando vogliamo invece contare due variabili
+contemporaneamente, per esempio le persone per stato HIV **e** sesso?
+Basta indicare entrambe le variabili dentro `count()`, separate da una
+virgola: `count()` conta le righe per ogni combinazione dei loro valori.
+
+Proviamo nell'area di prova: conta le persone per stato HIV e sesso
+insieme.
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+dati_clean %>%
+  count(hiv_status, sex)
+
+```
+
+</br>
+
+</details>
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+opts <- c(
+  "Una per ogni persona",
+  "Una per ogni valore di `hiv_status`",
+  answer = "Una per ogni combinazione di `hiv_status` e `sex`",
+  "Sempre due righe"
+)
+
+cat("Quante righe ha il risultato di `count(hiv_status, sex)`?", longmcq(opts))
+```
+:::
+::::
+
+## Tabelle di frequenza con `tabyl()`
+
+<!-- Tempo stimato: 6 minuti -->
+
+```{=html}
+<!-- DIPENDE DAI DATI: presuppone che sex abbia almeno un NA e che
+     chrls_index non ne abbia -->
+```
+
+`tabyl()` del pacchetto `{janitor}` la conosci già dai moduli
+precedenti, dove l'hai usata per esplorare i dati. Rispetto a `count()`
+fa qualcosa in più in un solo comando: oltre al conteggio (`n`) calcola
+anche la proporzione di ciascuna categoria (`percent`, tra 0 e 1).
+Quando ci sono valori mancanti aggiunge la riga `NA` e una seconda
+colonna, `valid_percent`, con le proporzioni calcolate escludendo i
+mancanti.
+
+Proviamo nell'area di prova: costruisci con `tabyl()` le tabelle di
+frequenza del sesso (`sex`) e dell'indice di Charlson
+(`chrls_index`). In quale delle due compare la colonna `valid_percent`?
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+dati_clean %>%
+  tabyl(sex)
+
+dati_clean %>%
+  tabyl(chrls_index)
+
+```
+
+</br>
+
+</details>
+
+Se la riga dei valori mancanti non ti serve, `tabyl()` ha l'argomento
+`show_na`: con `show_na = FALSE` la riga `NA` non viene mostrata. Ripeti
+nell'area di prova la tabella del sesso **senza** la riga dei valori
+mancanti.
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+dati_clean %>%
+  tabyl(sex, show_na = FALSE)
+
+```
+
+</br>
+
+</details>
+
+## Rifinire la tabella con le funzioni `adorn_*()`
+
+<!-- Tempo stimato: 8 minuti -->
+
+### Totali e percentuali
+
+La tabella di `tabyl()` è corretta, ma non ancora pronta da mostrare: le
+proporzioni sono numeri tra 0 e 1 con molti decimali e manca la riga del
+totale. Per rifinirla, `{janitor}` ha una famiglia di funzioni il cui
+nome inizia con `adorn_` (in inglese "adornare"). Si aggiungono dopo
+`tabyl()`, collegate con `%>%`. Le prime due sono:
+
+-   `adorn_totals()`, che aggiunge in fondo una riga `Total` con i
+    totali;
+-   `adorn_pct_formatting()`, che trasforma le proporzioni in
+    percentuali con il simbolo `%`; con l'argomento `digits` scegli
+    quante cifre decimali tenere.
+
+Proviamo nell'area di prova: partendo dalla tabella di `chrls_index`,
+aggiungi la riga del totale e formatta le percentuali con una cifra
+decimale.
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+dati_clean %>%
+  tabyl(chrls_index) %>%
+  adorn_totals() %>%
+  adorn_pct_formatting(digits = 1)
+
+```
+
+</br>
+
+</details>
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+opts <- c(
+  "Restano numeri, solo arrotondati",
+  answer = "Diventano testo (character), con il simbolo %",
+  "Diventano proporzioni tra 0 e 1",
+  "Vengono eliminate"
+)
+
+cat("Dopo `adorn_pct_formatting()`, che cosa diventano le percentuali?", longmcq(opts))
+```
+:::
+::::
+
+### Ordinare la tabella
+
+Con `count()` hai ordinato i conteggi con l'argomento `sort`. `tabyl()`
+non ha questo argomento: per ordinare le righe di una tabella si usa la
+funzione `arrange()` del pacchetto `{dplyr}`, indicando la variabile in
+base a cui ordinare. `arrange(n)` mette le righe dal conteggio più
+piccolo al più grande; per l'ordine inverso, dal più grande al più
+piccolo, si scrive `arrange(desc(n))`. Nel caso di variabili di classe
+`character`, la funzione `arrange()` esegue un ordinamento alfabetico.
+
+Ora costruisci la tabella delle regioni, ordinata dalla più frequente,
+con il totale e le percentuali formattate. Conta però l'ordine dei
+passaggi: prova nell'area di prova a scriverli in due ordini diversi,
+prima `adorn_totals()` e poi `arrange()`, e poi al contrario. Confronta
+i due risultati.
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+# Prima adorn_totals(), poi arrange(): la riga Total finisce in cima
+dati_clean %>%
+  tabyl(region) %>%
+  adorn_totals() %>%
+  arrange(desc(n)) %>%
+  adorn_pct_formatting(digits = 1)
+
+# Prima arrange(), poi adorn_totals(): ordine corretto
+dati_clean %>%
+  tabyl(region) %>%
+  arrange(desc(n)) %>%
+  adorn_totals() %>%
+  adorn_pct_formatting(digits = 1)
+
+```
+
+</br>
+
+</details>
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+opts <- c(
+  "Perché adorn_totals() mette sempre il totale nella prima riga",
+  answer = "Perché arrange() ordina anche la riga Total, che ha il valore di n più alto",
+  "Perché arrange() non funziona sulle tabelle di tabyl()",
+  "Perché arrange() ordina in ordine alfabetico"
+)
+
+cat("Perché, se usi `adorn_totals()` prima di `arrange(desc(n))`, la riga Total finisce in cima?", longmcq(opts))
+```
+:::
+::::
+
+::: {.callout-warning appearance="default" icon="false"}
+## Attenzione all'ordine delle funzioni `adorn_*()`
+
+Prima si calcola e si ordina, poi si "adorna": `arrange()` va prima di
+`adorn_totals()`, altrimenti anche la riga Total viene ordinata e
+finisce in cima. Inoltre, dopo `adorn_pct_formatting()` le percentuali
+sono testo: non si possono più usare per altri calcoli. Per questo le
+funzioni `adorn_*()` vanno sempre alla fine della catena.
+:::
+
+Ora salva la versione corretta nello script, nella sezione "Tabelle di
+frequenza", in un oggetto chiamato `tab_regione`.
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+tab_regione <- dati_clean %>%
+  tabyl(region) %>%
+  arrange(desc(n)) %>%
+  adorn_totals() %>%
+  adorn_pct_formatting(digits = 1)
+
+tab_regione
+
+```
+
+</br>
+
+</details>
+
+## Tabelle a doppia entrata
+
+<!-- Tempo stimato: 13 minuti -->
+
+### Incrociare due variabili
+
+Per vedere come si distribuisce una variabile dentro i gruppi di
+un'altra, per esempio il sesso tra le persone con e senza HIV, si usa
+una **tabella a doppia entrata**. Con `tabyl()` basta indicare due
+variabili, separate da una virgola: la prima va nelle righe, la seconda
+nelle colonne.
+
+Proviamo nell'area di prova: costruisci la tabella con lo stato HIV
+(`hiv_status`) nelle righe e il sesso (`sex`) nelle colonne.
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+dati_clean %>%
+  tabyl(hiv_status, sex)
+
+```
+
+</br>
+
+</details>
+
+### Totali di riga e di colonna
+
+Anche nelle tabelle a doppia entrata puoi aggiungere i totali con
+`adorn_totals()`. Con l'argomento `where` scegli **dove** metterli:
+
+-   `"row"` (il valore predefinito) aggiunge in fondo una **riga**
+    `Total`, con la somma di ogni colonna;
+-   `"col"` aggiunge a destra una **colonna** `Total`, con la somma di
+    ogni riga;
+-   `c("row", "col")` aggiunge entrambi.
+
+Prova nell'area di prova i tre casi sulla tabella di stato HIV per sesso
+e confronta i risultati.
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+# riga Total in fondo (come adorn_totals() senza argomenti)
+dati_clean %>%
+  tabyl(hiv_status, sex) %>%
+  adorn_totals("row")
+
+# colonna Total a destra
+dati_clean %>%
+  tabyl(hiv_status, sex) %>%
+  adorn_totals("col")
+
+# entrambi
+dati_clean %>%
+  tabyl(hiv_status, sex) %>%
+  adorn_totals(c("row", "col"))
+
+```
+
+</br>
+
+</details>
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+opts <- c(
+  "Il numero di donne con HIV",
+  "Il totale delle persone con HIV",
+  answer = "Il numero totale di persone nel dataset",
+  "La somma della colonna `Total` divisa per due"
+)
+
+cat("Nella tabella con `adorn_totals(c(\"row\", \"col\"))`, che cosa indica il valore in basso a destra?", longmcq(opts))
+```
+:::
+::::
+
+::: {.callout-warning appearance="default" icon="false"}
+## Attenzione ai totali nelle tabelle a una variabile
+
+In una tabella con una sola variabile, come `tabyl(chrls_index)`, usa
+solo la riga `Total`. Con `"col"` R sommerebbe il conteggio `n` e la
+proporzione `percent` della stessa riga, ottenendo numeri senza
+significato.
+:::
+
+### Percentuali di riga
+
+La tabella contiene solo i conteggi. Per trasformarli in percentuali si
+usano altre due funzioni `adorn_*()`:
+
+-   `adorn_percentages()` trasforma i conteggi in proporzioni: con
+    `"row"` le calcola per riga (ogni riga somma a 1), con `"col"` per
+    colonna;
+-   `adorn_ns()` aggiunge accanto a ogni percentuale il conteggio tra
+    parentesi.
+
+Tra le due va `adorn_pct_formatting()`, che conosci già. Nell'area di
+prova, trasforma la tabella di stato HIV per sesso in percentuali di
+riga, formattale con una cifra decimale e aggiungi i conteggi tra
+parentesi.
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+dati_clean %>%
+  tabyl(hiv_status, sex) %>%
+  adorn_percentages("row") %>%
+  adorn_pct_formatting(digits = 1) %>%
+  adorn_ns()
+
+```
+
+</br>
+
+</details>
+
+### Percentuali di colonna
+
+Nell'area di prova, ripeti la tabella con le percentuali di colonna e
+confrontala con quella precedente: quale delle due somma a 100% per riga
+e quale per colonna?
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+dati_clean %>%
+  tabyl(hiv_status, sex) %>%
+  adorn_percentages("col") %>%
+  adorn_pct_formatting(digits = 1) %>%
+  adorn_ns()
+
+```
+
+</br>
+
+</details>
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+opts <- c(
+  answer = "La tabella con le percentuali di riga",
+  "La tabella con le percentuali di colonna",
+  "Sono equivalenti",
+  "Nessuna delle due: servono i conteggi"
+)
+
+cat("Vuoi sapere quale percentuale delle persone con HIV è di sesso femminile. Quale tabella usi?", longmcq(opts))
+```
+:::
+::::
+
+::: {.callout-warning appearance="default" icon="false"}
+## Attenzione alla scelta tra percentuali di riga e di colonna
+
+Le due tabelle contengono gli stessi conteggi, ma rispondono a domande
+diverse. Con `"row"` ogni riga somma a 100%: confronti la distribuzione
+della variabile in colonna tra i gruppi in riga. Con `"col"` ogni
+colonna somma a 100%. Prima di scegliere, chiediti qual è il
+denominatore che ti interessa.
+:::
+
+### Stato HIV e classe d'età
+
+Questa tabella la teniamo. Nello script, sopra l'area di prova, crea la
+sezione "Tabelle a doppia entrata" (**Ctrl+Shift+R**) e salva la tabella
+di `hiv_status` per `age_group`, con le percentuali di riga, in un
+oggetto chiamato `tab_hiv_eta`. Poi stampala.
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+# Tabelle a doppia entrata ------------------------------------------------
+tab_hiv_eta <- dati_clean %>%
+  tabyl(hiv_status, age_group) %>%
+  adorn_percentages("row") %>%
+  adorn_pct_formatting(digits = 1) %>%
+  adorn_ns()
+
+tab_hiv_eta
+
+```
+
+</br>
+
+</details>
+
+```{=html}
+<!-- DIPENDE DAI DATI: presuppone una quota di 60+ quasi identica
+     nei due gruppi HIV -->
+```
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+opts <- c(
+  "Le persone con HIV sono molto più anziane",
+  "Le persone senza HIV sono molto più anziane",
+  answer = "La distribuzione per età è quasi identica nei due gruppi",
+  "Non si può dire senza calcolare l'età media"
+)
+
+cat("Che cosa noti confrontando la distribuzione per classe d'età dei due gruppi HIV?", longmcq(opts))
+```
+:::
+::::
+
+::: {.callout-tip appearance="default" icon="false"}
+## Approfondimento: le stesse tabelle con R base
+
+Le tabelle di questo modulo si possono costruire anche con le funzioni
+di R base, senza `{dplyr}` e `{janitor}`. Il risultato però non è un
+data frame, quindi è più scomodo da riusare:
+
+```{r}
+#| eval: false
+# conteggi (come count() o tabyl())
+table(dati_clean$hiv_status)
+
+# percentuali (come mutate(perc = n / sum(n) * 100))
+round(prop.table(table(dati_clean$sex)) * 100, 1)
+
+# percentuali di riga di una tabella a doppia entrata
+prop.table(table(dati_clean$hiv_status, dati_clean$sex), margin = 1) * 100
+```
+:::
+
+## `summarise()` sull'intero dataset
+
+<!-- Tempo stimato: 7 minuti -->
+
+### Come funziona `summarise()`
+
+Finora hai contato le persone. Se invece vuoi calcolare una statistica
+di sintesi, per esempio la durata media del follow-up, si usa
+`summarise()` del pacchetto `{dplyr}`: riduce l'intero data frame a
+**una sola riga**, con una variabile per ogni statistica che chiedi.
+Dentro le parentesi scrivi `nome_nuova_variabile = funzione(variabile)`
+e separi le statistiche con una virgola:
+
+```{r}
+#| eval: false
+dati_clean %>%
+  summarise(
+    NOME_1 = FUNZIONE(VARIABILE),
+    NOME_2 = FUNZIONE(VARIABILE))
+```
+
+Due funzioni utili per contare dentro `summarise()` sono `n()`, che
+conta le righe (non vuole nulla tra le parentesi), e `n_distinct()`, che
+conta i valori diversi di una variabile.
+
+### Contare le persone
+
+Proviamo nell'area di prova: usa `summarise()` per calcolare sull'intera
+coorte il numero di persone (`n`) e il numero di identificativi diversi
+(`n_id`, dalla variabile `id_subject`).
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+dati_clean %>%
+  summarise(
+    n    = n(),
+    n_id = n_distinct(id_subject))
+
+```
+
+</br>
+
+</details>
+
+<!-- La risposta corretta è calcolata dai dati -->
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+id_unici <- n_distinct(dati_clean$id_subject) == nrow(dati_clean)
+
+opts <- c(
+  "Alcune persone compaiono in più righe",
+  "Ogni riga è una persona diversa: nessun identificativo si ripete",
+  "Mancano alcuni identificativi",
+  "n_distinct() conta solo i valori che compaiono una volta"
+)
+names(opts) <- c(ifelse(id_unici, "", "answer"), ifelse(id_unici, "answer", ""), "", "")
+
+cat("Confronta `n` e `n_id`: che cosa ti dicono?", longmcq(opts))
+```
+:::
+::::
+
+### Descrivere il follow-up
+
+Dentro `summarise()` puoi usare anche le funzioni statistiche che
+conosci, `mean()` (media), `min()` e `max()`, e anche `median()` per
+la mediana.
+Funzionano anche con le date: `min()` di una data dà la data più
+vecchia, `max()` la più recente.
+
+Nell'area di prova, calcola sull'intera coorte:
+
+-   la durata media e la durata mediana del follow-up (`fu_days`);
+-   la durata minima e massima del follow-up;
+-   la prima e l'ultima data di vaccinazione (`date_vacc`).
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+dati_clean %>%
+  summarise(
+    fu_medio    = mean(fu_days),
+    fu_mediano  = median(fu_days),
+    fu_min      = min(fu_days),
+    fu_max      = max(fu_days),
+    prima_vacc  = min(date_vacc),
+    ultima_vacc = max(date_vacc))
+
+```
+
+</br>
+
+</details>
+
+::: {.callout-tip appearance="default" icon="false"}
+## Approfondimento: altre funzioni di sintesi
+
+Dentro `summarise()` puoi usare qualunque funzione che, a partire da una
+variabile, restituisce un solo valore. Oltre a quelle dell'esercizio,
+sono utili `sd()` (deviazione standard), `IQR()` (scarto interquartile)
+e `quantile()`, che con l'argomento `probs =` calcola un quantile a
+scelta. Per esempio `quantile(fu_days, probs = 0.25)` dà il primo
+quartile della durata del follow-up. In R base,
+`summary(dati_clean$fu_days)` dà un riassunto rapido di una sola
+variabile.
+:::
+
+## Statistiche per gruppo con `group_by()` e `summarise()`
+
+<!-- Tempo stimato: 12 minuti -->
+
+### Come funziona `group_by()`
+
+Spesso non ci interessa una statistica sull'intera coorte, ma la stessa
+statistica **per gruppo**: per esempio la durata media del follow-up tra
+le persone con HIV e tra quelle senza HIV. Per farlo si aggiunge
+`group_by()` prima di `summarise()`, indicando la variabile che
+definisce i gruppi:
+
+```{r}
+#| eval: false
+dati_clean %>%
+  group_by(VARIABILE_DEI_GRUPPI) %>%
+  summarise(NOME = FUNZIONE(VARIABILE))
+```
+
+`group_by()` da sola non cambia i dati: dice solo alle funzioni
+successive di lavorare separatamente dentro ciascun gruppo. Così
+`summarise()` restituisce **una riga per gruppo** invece di una sola.
+Puoi chiudere il raggruppamento con l'argomento `.groups = "drop"`
+dentro `summarise()`, oppure con `ungroup()` dopo `summarise()`.
+
+### Follow-up per stato HIV
+
+Proviamo nell'area di prova: calcola separatamente per le persone con e
+senza HIV il numero di persone e la durata media e mediana del
+follow-up. Quante righe ha il risultato? Perché?
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+dati_clean %>%
+  group_by(hiv_status) %>%
+  summarise(
+    n          = n(),
+    fu_medio   = mean(fu_days),
+    fu_mediano = median(fu_days))
+
+# due righe: 0 e 1 (le persone con stato HIV mancante sono state
+# escluse nel Modulo 3)
+
+```
+
+</br>
+
+</details>
+
+### Tasso di incidenza per stato HIV
+
+In una coorte non tutte le persone sono seguite per lo stesso tempo: per
+confrontare il rischio tra due gruppi si usa il **tasso di incidenza**,
+cioè il numero di eventi diviso per il tempo totale di osservazione. Il
+tempo si misura in **anni-persona**: la somma dei giorni di follow-up di
+tutte le persone del gruppo, divisa per 365,25. Per renderlo più
+leggibile, il tasso si esprime di solito per 100 anni-persona.
+
+Con `group_by()` e `summarise()` hai tutto quello che serve. Proviamo
+nell'area di prova: calcola per ciascun gruppo HIV:
+
+-   il numero di persone (`n`);
+-   il numero di eventi (`eventi`);
+-   gli anni-persona di follow-up (`anni_persona`), cioè la somma di
+    `fu_days` divisa per 365,25;
+-   il tasso di incidenza per 100 anni-persona (`tasso_100`).
+
+Arrotonda il tasso a due cifre decimali **solo alla fine**.
+
+<details>
+
+<summary style="text-decoration: underline; color: darkgreen;">
+
+`r fontawesome::fa("lightbulb", fill = "gold")` Clicca per leggere un
+suggerimento
+
+</summary>
+
+</br>
+
+`event` vale 1 per chi ha avuto la diagnosi e 0 per gli altri, quindi
+`sum(event)` conta gli eventi. Dentro `summarise()` puoi usare le
+variabili appena create (per esempio `eventi` e `anni_persona`) per
+calcolare il tasso. Per arrotondare alla fine aggiungi un `mutate()`
+dopo `summarise()`.
+
+</br>
+
+</details>
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+dati_clean %>%
+  group_by(hiv_status) %>%
+  summarise(
+    n            = n(),
+    eventi       = sum(event),                 # somma degli 1 = numero di eventi
+    anni_persona = sum(fu_days) / 365.25,
+    tasso_100    = eventi / anni_persona * 100) %>%
+  mutate(tasso_100 = round(tasso_100, 2))      # arrotondo solo alla fine
+
+```
+
+</br>
+
+</details>
+
+<!-- La risposta corretta è calcolata dai dati -->
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+tassi_hiv <- dati_clean %>%
+  group_by(hiv_status) %>%
+  summarise(t = sum(event) / sum(fu_days))
+
+opts <- c(
+  "Le persone con HIV",
+  "Le persone senza HIV",
+  "I due tassi sono uguali"
+)
+corretta <- case_when(
+  tassi_hiv$t[tassi_hiv$hiv_status == 1] > tassi_hiv$t[tassi_hiv$hiv_status == 0] ~ opts[1],
+  tassi_hiv$t[tassi_hiv$hiv_status == 1] < tassi_hiv$t[tassi_hiv$hiv_status == 0] ~ opts[2],
+  TRUE ~ opts[3]
+)
+names(opts) <- ifelse(opts == corretta, "answer", "")
+
+cat("Quale gruppo ha il tasso di incidenza grezzo più alto?", longmcq(opts))
+```
+:::
+::::
+
+::: {.callout-warning appearance="default" icon="false"}
+## Attenzione ad arrotondare troppo presto
+
+Se arrotondi `anni_persona` dentro `summarise()` e poi lo usi per
+calcolare il tasso, l'errore di arrotondamento si propaga al risultato.
+Arrotonda solo alla fine, con un `mutate()` dopo `summarise()`.
+:::
+
+### Tasso di incidenza per classe d'età
+
+Questo risultato lo teniamo. Nello script, sopra l'area di prova, crea
+la sezione "Statistiche per gruppo" (**Ctrl+Shift+R**) e calcola il
+tasso per classe d'età di 10 anni (`age_cat`, la variabile che hai
+creato nel Modulo 3), salvandolo in un oggetto chiamato `tassi_eta`.
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+# Statistiche per gruppo --------------------------------------------------
+tassi_eta <- dati_clean %>%
+  group_by(age_cat) %>%
+  summarise(
+    n            = n(),
+    eventi       = sum(event),
+    anni_persona = sum(fu_days) / 365.25,
+    tasso_100    = eventi / anni_persona * 100) %>%
+  mutate(tasso_100 = round(tasso_100, 2))
+
+tassi_eta
+
+```
+
+</br>
+
+</details>
+
+```{=html}
+<!-- DIPENDE DAI DATI: presuppone che il tasso cambi bruscamente a 60
+     anni -->
+```
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+opts <- c(
+  "Cresce in modo graduale con l'età",
+  answer = "È simile fino ai 59 anni e scende molto dai 60 anni in su",
+  "È uguale in tutte le classi d'età"
+)
+
+cat("Guardando `tassi_eta`, come cambia il tasso con l'età?", longmcq(opts))
+```
+:::
+::::
+
+```{=html}
+<!-- DIPENDE DAI DATI: presuppone che i due gruppi HIV abbiano la stessa
+     composizione per età -->
+```
+
+::: {.callout-warning appearance="default" icon="false"}
+## Attenzione ai confronti tra tassi grezzi
+
+Il tasso cambia molto con l'età. Se le persone con HIV fossero molto più
+anziane (o più giovani) di quelle senza HIV, il confronto tra i tassi
+grezzi dei due gruppi mescolerebbe l'effetto dell'HIV con quello
+dell'età. Qui i due gruppi hanno una composizione per età quasi
+identica, come hai visto in `tab_hiv_eta`. Nella prossima sezione
+calcolerai comunque i tassi separatamente per stato HIV e classe d'età.
+:::
+
+## Più variabili di raggruppamento e `.groups`
+
+<!-- Tempo stimato: 10 minuti -->
+
+### Tassi per stato HIV e classe d'età
+
+Dentro `group_by()` puoi indicare anche più variabili, separate da una
+virgola: i gruppi diventano allora tutte le combinazioni dei loro
+valori, per esempio "con HIV e 18-59 anni", "con HIV e 60+" e così via.
+`summarise()` restituisce una riga per ogni combinazione.
+
+Proviamo nell'area di prova: calcola numero di persone, eventi,
+anni-persona e tasso per 100 anni-persona per ciascuna combinazione di
+`hiv_status` e `age_group`. Leggi con attenzione il messaggio che
+compare nella console.
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+dati_clean %>%
+  group_by(hiv_status, age_group) %>%
+  summarise(
+    n            = n(),
+    eventi       = sum(event),
+    anni_persona = sum(fu_days) / 365.25,
+    tasso_100    = eventi / anni_persona * 100) %>%
+  mutate(tasso_100 = round(tasso_100, 2))
+
+```
+
+</br>
+
+</details>
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+opts <- c(
+  "Non è più raggruppato",
+  answer = "È ancora raggruppato per `hiv_status`",
+  "È ancora raggruppato per `age_group`",
+  "È ancora raggruppato per `hiv_status` e `age_group`"
+)
+
+cat("Dopo `summarise()`, il risultato è ancora raggruppato? Se sì, per quale variabile?", longmcq(opts))
+```
+:::
+::::
+
+```{=html}
+<!-- DIPENDE DAI DATI: con il dataset attuale il tasso è più alto con
+     HIV sia nel complesso sia in ciascuna classe d'età -->
+```
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+opts <- c(
+  answer = "Sì: il tasso è più alto con HIV sia nel complesso sia in ciascuna classe d'età",
+  "No: dentro le classi d'età il tasso è più alto senza HIV",
+  "No: dentro le classi d'età i tassi sono uguali",
+  "Non si può dire"
+)
+
+cat("Confronta i tassi per stato HIV dentro ciascuna classe d'età con i tassi grezzi calcolati prima. La conclusione è la stessa?", longmcq(opts))
+```
+:::
+::::
+
+### Un raggruppamento dimenticato
+
+Vogliamo sapere quale quota dell'**intera coorte** cade in ciascuna
+combinazione di stato HIV e classe d'età. Esegui questo codice nell'area
+di prova e controlla le percentuali: sommano a 100?
+
+```{r}
+#| echo: true
+#| eval: false
+
+dati_clean %>%
+  group_by(hiv_status, age_group) %>%
+  summarise(n = n()) %>%
+  mutate(perc = n / sum(n) * 100)
+
+```
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+opts <- c(
+  "Sommano a 100 sull'intera coorte",
+  answer = "Sommano a 100 dentro ciascun gruppo di `hiv_status`",
+  "Sommano a 100 dentro ciascuna classe d'età",
+  "Non sommano a 100 in nessun modo"
+)
+
+cat("Come si comportano le percentuali del codice qui sopra?", longmcq(opts))
+```
+:::
+::::
+
+Correggi il codice in modo che le percentuali siano calcolate sul totale
+della coorte. Questo risultato lo teniamo: salvalo nello script, nella
+sezione "Statistiche per gruppo", in un oggetto chiamato
+`quota_hiv_eta`.
+
+<details>
+
+<summary style="text-decoration: underline; color: darkgreen;">
+
+`r fontawesome::fa("lightbulb", fill = "gold")` Clicca per leggere un
+suggerimento
+
+</summary>
+
+</br>
+
+Il risultato di `summarise()` è ancora raggruppato per `hiv_status`,
+quindi `sum(n)` è il totale di ciascun gruppo HIV. Anche in questo caso,
+puoi chiudere il raggruppamento con l'argomento `.groups = "drop"`
+dentro `summarise()`, oppure con `ungroup()` dopo `summarise()`.
+
+</br>
+
+</details>
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+quota_hiv_eta <- dati_clean %>%
+  group_by(hiv_status, age_group) %>%
+  summarise(n = n(), .groups = "drop") %>%
+  mutate(perc = n / sum(n) * 100)
+
+quota_hiv_eta
+
+```
+
+Lo stesso risultato si ottiene scrivendo `summarise(n = n())` e poi
+`ungroup()` prima di `mutate()`.
+
+</br>
+
+</details>
+
+::: {.callout-warning appearance="default" icon="false"}
+## Attenzione al raggruppamento rimasto dopo `summarise()`
+
+Con più variabili in `group_by()`, il risultato di `summarise()` resta
+raggruppato per tutte tranne l'ultima. R lo segnala con un messaggio
+nella console e con la riga `# Groups:` sopra la tabella. Se non lo
+chiudi, i calcoli successivi vengono fatti dentro i gruppi. Prendi
+l'abitudine di chiudere sempre il raggruppamento con `.groups = "drop"`
+oppure con `ungroup()`.
+:::
+
+## Valori mancanti e `na.rm`
+
+<!-- Tempo stimato: 7 minuti -->
+
+### Il tempo all'evento
+
+Che cosa succede alle statistiche di sintesi quando una variabile ha dei
+valori mancanti? Vediamolo con un esempio. Nell'area di prova, calcola
+per ciascun gruppo HIV la mediana dei giorni tra la vaccinazione e
+l'evento (`date_event - date_vacc`). Che cosa ottieni? Correggi poi il
+codice in modo da ottenere un valore.
+
+<details>
+
+<summary style="text-decoration: underline; color: darkgreen;">
+
+`r fontawesome::fa("lightbulb", fill = "gold")` Clicca per leggere un
+suggerimento
+
+</summary>
+
+</br>
+
+Le funzioni di sintesi come `median()` e `mean()` restituiscono `NA` se
+c'è anche un solo valore mancante. L'argomento `na.rm = TRUE` esclude i
+valori mancanti dal calcolo.
+
+</br>
+
+</details>
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+# Senza na.rm il risultato è NA
+dati_clean %>%
+  group_by(hiv_status) %>%
+  summarise(gg_mediana = median(date_event - date_vacc))
+
+# Con na.rm = TRUE
+dati_clean %>%
+  group_by(hiv_status) %>%
+  summarise(gg_mediana = median(date_event - date_vacc, na.rm = TRUE))
+
+```
+
+</br>
+
+</details>
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+opts <- c(
+  "Su tutte le persone della coorte",
+  answer = "Solo sulle persone che hanno avuto l'evento",
+  "Solo sulle persone senza valori mancanti in tutte le variabili",
+  "Sulle persone senza l'evento"
+)
+
+cat("Con `na.rm = TRUE`, su quali persone è calcolata la mediana dei giorni all'evento?", longmcq(opts))
+```
+:::
+::::
+
+::: {.callout-warning appearance="default" icon="false"}
+## Attenzione al significato dei valori mancanti
+
+`na.rm = TRUE` fa sparire gli `NA` dal calcolo, ma non risponde alla
+domanda più importante: che cosa significano? In `date_event` un `NA`
+vuol dire "nessuna diagnosi", non "dato perso", quindi la mediana
+riguarda solo chi ha avuto l'evento. In altre variabili un `NA` può
+essere un dato davvero mancante: escluderlo senza pensarci può
+distorcere i risultati.
+:::
+
+### L'età media
+
+<!-- DIPENDE DAI DATI: presuppone qualche NA in age -->
+
+Nell'area di prova, calcola per ciascun gruppo HIV l'età media. Che cosa
+ottieni? Correggi il codice. Qui il significato dell'`NA` è diverso da
+quello di `date_event`: che cosa rappresentano i valori mancanti
+dell'età?
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+# Senza na.rm il risultato è NA: alcune età sono mancanti
+dati_clean %>%
+  group_by(hiv_status) %>%
+  summarise(eta_media = mean(age))
+
+# Con na.rm = TRUE la media è calcolata sulle età presenti
+dati_clean %>%
+  group_by(hiv_status) %>%
+  summarise(eta_media = mean(age, na.rm = TRUE))
+
+```
+
+Qui gli `NA` sono età davvero mancanti: sono i codici non validi (come
+`"Unknown"` o `"N/D"`) che nel Modulo 2 hai trasformato in valori
+mancanti. Sono pochi, quindi escluderli non cambia la media.
+
+</br>
+
+</details>
+
+## Conteggi e percentuali condizionali
+
+<!-- Tempo stimato: 7 minuti -->
+
+Come si conta, dentro `summarise()`, quante persone soddisfano una
+condizione, per esempio quante sono donne? C'è un trucco utile. Una
+condizione come `sex == "F"` restituisce `TRUE` o `FALSE` per ogni riga,
+e nei calcoli R tratta `TRUE` come 1 e `FALSE` come 0. Quindi:
+
+-   `sum(sex == "F")` somma gli 1, cioè **conta** le donne;
+-   `mean(sex == "F")` fa la media degli 1 e degli 0, cioè dà la
+    **proporzione** di donne (moltiplicata per 100 diventa una
+    percentuale).
+
+Proviamo nell'area di prova: calcola per ciascun gruppo HIV:
+
+-   il numero di persone (`n`);
+-   il numero di donne (`n_donne`) e la loro percentuale (`perc_donne`);
+-   la percentuale di persone con almeno 60 anni, usando la variabile
+    `age` (`perc_60`);
+-   la percentuale di persone con indice di Charlson uguale a "3-4"
+    (`perc_charlson_34`);
+-   il punteggio di Charlson medio (`charlson_medio`), usando la
+    variabile numerica `chrls_score`.
+
+Attenzione: `sex` e `age` hanno qualche valore mancante.
+
+<details>
+
+<summary style="text-decoration: underline; color: darkgreen;">
+
+`r fontawesome::fa("lightbulb", fill = "gold")` Clicca per leggere un
+suggerimento
+
+</summary>
+
+</br>
+
+Per l'età usa la condizione `age >= 60`, per l'indice di Charlson
+`chrls_index == "3-4"`. Per `sex` e `age`, che hanno valori mancanti,
+aggiungi `na.rm = TRUE`, come hai visto nella sezione precedente.
+
+</br>
+
+</details>
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+dati_clean %>%
+  group_by(hiv_status) %>%
+  summarise(
+    n                = n(),
+    n_donne          = sum(sex == "F", na.rm = TRUE),
+    perc_donne       = mean(sex == "F", na.rm = TRUE) * 100,
+    perc_60          = mean(age >= 60, na.rm = TRUE) * 100,
+    perc_charlson_34 = mean(chrls_index == "3-4") * 100,
+    charlson_medio   = mean(chrls_score))
+
+```
+
+</br>
+
+</details>
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+opts <- c(
+  "Il numero di donne",
+  answer = "La proporzione di donne, un valore tra 0 e 1",
+  "Il numero di righe della tabella",
+  "Un errore, perché sex è una variabile di testo"
+)
+
+cat("Che cosa restituisce `mean(sex == \"F\")`?", longmcq(opts))
+```
+:::
+::::
+
+```{=html}
+<!-- DIPENDE DAI DATI: il testo presuppone circa il doppio di persone senza
+     HIV e la stessa quota di donne nei due gruppi -->
+```
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+opts <- c(
+  "Il conteggio, perché è un numero intero",
+  answer = "La percentuale, perché i due gruppi hanno numerosità diverse",
+  "Sono equivalenti",
+  "Nessuno dei due"
+)
+
+cat("`n_donne` è circa il doppio tra le persone senza HIV, mentre `perc_donne` è uguale nei due gruppi. Per confrontare la presenza di donne tra persone con e senza HIV, è più adatto il conteggio o la percentuale?", longmcq(opts))
+```
+:::
+::::
+
+## `group_by()` con `mutate()`
+
+<!-- Tempo stimato: 7 minuti -->
+
+`group_by()` non funziona solo con `summarise()`: si può usare anche con
+`mutate()`. La differenza è importante:
+
+-   con `summarise()` ottieni **una riga per gruppo**;
+-   con `mutate()` **tutte le righe restano**, ma i calcoli come `sum()`
+    vengono fatti dentro ciascun gruppo.
+
+Serve, per esempio, per calcolare le percentuali dentro ciascun gruppo
+partendo da una tabella di conteggi. Proviamo nell'area di prova: conta
+le persone per stato HIV e indice di Charlson. Poi aggiungi una
+variabile `perc` con la percentuale di ciascuna categoria di
+`chrls_index` **dentro** ciascun gruppo HIV, arrotondata a una cifra
+decimale. Alla fine rimuovi il raggruppamento.
+
+<details>
+
+<summary style="text-decoration: underline; color: darkgreen;">
+
+`r fontawesome::fa("lightbulb", fill = "gold")` Clicca per leggere un
+suggerimento
+
+</summary>
+
+</br>
+
+Dopo `count()` usa `group_by(hiv_status)` e poi `mutate()`: `sum(n)`
+diventa il totale del gruppo. Chiudi con `ungroup()`.
+
+</br>
+
+</details>
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+dati_clean %>%
+  count(hiv_status, chrls_index) %>%
+  group_by(hiv_status) %>%
+  mutate(perc = round(n / sum(n) * 100, 1)) %>%
+  ungroup()
+
+# Lo stesso risultato, in formato largo, con tabyl()
+dati_clean %>%
+  tabyl(hiv_status, chrls_index) %>%
+  adorn_percentages("row") %>%
+  adorn_pct_formatting(digits = 1)
+
+```
+
+</br>
+
+</details>
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+opts <- c(
+  "Una riga per gruppo HIV",
+  answer = "Le stesse righe del risultato di `count()`",
+  "Una riga per persona",
+  "Una sola riga"
+)
+
+cat("Quante righe ha il risultato dopo `group_by()` e `mutate()`?", longmcq(opts))
+```
+:::
+::::
+
+::: {.callout-warning appearance="default" icon="false"}
+## Attenzione a quando calcolare dentro i gruppi
+
+Nella sezione su `.groups`, il raggruppamento rimasto dopo `summarise()`
+faceva calcolare `sum(n)` dentro ciascun gruppo HIV, ed era un errore.
+Qui calcoliamo `sum(n)` dentro ciascun gruppo HIV di proposito. Il
+calcolo in sé è lo stesso: a decidere se è giusto o sbagliato è la
+domanda a cui vuoi rispondere, cioè qual è il denominatore che ti serve.
+:::
+
+## Esplorare, aggregare, presentare
+
+<!-- Tempo stimato: 20 minuti -->
+
+Le tabelle che hai costruito finora servono a tre scopi diversi:
+
+-   **esplorare** i dati: tabelle veloci con `count()` o `tabyl()`, che
+    guardi nella console per capire e controllare i dati. Sono quelle
+    che hai scritto nell'area di prova;
+-   **creare dataset aggregati**: con `group_by()` e `summarise()`
+    ottieni un nuovo data frame, in formato lungo, che salvi con un nome
+    nuovo e usi per altri calcoli o per i grafici dei prossimi moduli;
+-   **presentare** i risultati: tabelle finali da mostrare, in formato
+    largo, con totali e percentuali formattate dalle funzioni
+    `adorn_*()`, e rese più leggibili con `{flextable}`.
+
+Le ultime due le salvi in un oggetto e le scrivi nello script.
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+opts <- c(
+  "`dati_clean %>% count(region)`",
+  answer = "`dati_clean %>% tabyl(hiv_status, sex) %>% adorn_percentages(\"row\") %>%`<br>`adorn_pct_formatting() %>% adorn_ns()`",
+  "`dati_clean %>% group_by(hiv_status) %>% summarise(n = n(), .groups = \"drop\")`",
+  "`skim(dati_clean)`"
+)
+
+cat("Quale di questi comandi produce una tabella pensata per essere presentata in un report?", longmcq(opts))
+```
+:::
+::::
+
+### Un dataset aggregato
+
+Metti insieme quello che hai imparato. Nello script, sopra l'area di
+prova, crea la sezione "Sintesi per stato HIV" (**Ctrl+Shift+R**) e crea
+un nuovo oggetto `sintesi_hiv` con, per ciascun gruppo HIV:
+
+-   il numero di persone;
+-   la percentuale di donne;
+-   l'età mediana;
+-   la percentuale di persone con 60 anni o più;
+-   la percentuale di persone con indice di Charlson "3-4" o "5+";
+-   la mediana degli anticorpi anti-SARS-CoV-2 (`anticorpi`, in BAU/mL);
+-   il numero di eventi, gli anni-persona e il tasso per 100
+    anni-persona.
+
+Arrotonda percentuali e tasso a una cifra decimale alla fine, poi stampa
+`sintesi_hiv` e controlla che `dati_clean` abbia ancora tutte le sue
+righe. Nel pannello **Environment** ora dovresti vedere, uno accanto
+all'altro, il dataset individuale `dati_clean` e il dataset aggregato
+`sintesi_hiv`, con il loro numero di righe (*obs.*) e di variabili
+(*variables*).
+
+<details>
+
+<summary style="text-decoration: underline; color: darkgreen;">
+
+`r fontawesome::fa("lightbulb", fill = "gold")` Clicca per leggere un
+suggerimento
+
+</summary>
+
+</br>
+
+Scrivi una statistica per riga dentro un unico `summarise()`; ricorda
+`na.rm = TRUE` per `sex` e `age`. Per la condizione su due valori puoi
+usare `chrls_index == "3-4" | chrls_index == "5+"`. Salva il risultato
+con un nome nuovo usando l'operatore di assegnazione `<-`: se scrivessi
+`dati_clean <- dati_clean %>% summarise(...)` perderesti i dati
+individuali.
+
+</br>
+
+</details>
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+# Sintesi per stato HIV ---------------------------------------------------
+sintesi_hiv <- dati_clean %>%
+  group_by(hiv_status) %>%
+  summarise(
+    n                  = n(),
+    perc_donne         = mean(sex == "F", na.rm = TRUE) * 100,
+    eta_mediana        = median(age, na.rm = TRUE),
+    perc_60            = mean(age >= 60, na.rm = TRUE) * 100,
+    perc_charlson_3piu = mean(chrls_index == "3-4" |
+                              chrls_index == "5+") * 100,
+    anticorpi_mediana  = median(anticorpi),
+    eventi             = sum(event),
+    anni_persona       = sum(fu_days) / 365.25,
+    tasso_100          = eventi / anni_persona * 100,
+    .groups = "drop") %>%
+  mutate(
+    perc_donne         = round(perc_donne, 1),
+    perc_60            = round(perc_60, 1),
+    perc_charlson_3piu = round(perc_charlson_3piu, 1),
+    anni_persona       = round(anni_persona, 1),
+    tasso_100          = round(tasso_100, 1))
+
+sintesi_hiv
+
+# dati_clean è intatto
+nrow(dati_clean)
+
+```
+
+</br>
+
+</details>
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+opts <- c(
+  "Perché summarise() non può modificare un oggetto esistente",
+  answer = "Perché sovrascrivendo `dati_clean` perderemmo i dati individuali",
+  "Perché R non accetta due oggetti con variabili diverse",
+  "Non c'è differenza: si può usare anche dati_clean"
+)
+
+cat("Perché salviamo il risultato in `sintesi_hiv` e non in `dati_clean`?", longmcq(opts))
+```
+:::
+::::
+
+::: {.callout-warning appearance="default" icon="false"}
+## Attenzione a non sovrascrivere il dataset
+
+Se scrivi `dati_clean <- dati_clean %>% summarise(...)`, l'operatore di
+assegnazione `<-` sostituisce i dati individuali con la tabella di
+sintesi, e le variabili originali spariscono. R non dà nessun errore in
+quel momento: te ne accorgi solo dopo, quando un comando non trova più
+una variabile. Salva sempre le sintesi in un oggetto con un nome nuovo.
+:::
+
+### Presentare la sintesi con `{flextable}`
+
+`sintesi_hiv` è un dataset aggregato: perfetto per altri calcoli, ma
+ancora poco leggibile per chi lo guarda. Per presentarlo si usa il
+pacchetto `{flextable}`, che hai caricato all'inizio del modulo. Le
+funzioni che servono sono tre, collegate con `%>%`:
+
+-   `flextable()` trasforma il data frame in una tabella formattata;
+-   `set_header_labels()` cambia le intestazioni delle colonne: dentro
+    le parentesi scrivi `nome_variabile = "intestazione"`, separando le
+    variabili con una virgola;
+-   `autofit()` adatta la larghezza delle colonne al contenuto.
+
+In RStudio il risultato compare nel pannello **Viewer**. Nella stessa
+sezione dello script, trasforma `sintesi_hiv` in una tabella formattata,
+dai alle colonne intestazioni più chiare (almeno a `hiv_status`, `n` e
+`tasso_100`), adatta la larghezza delle colonne e salva il risultato in
+un oggetto chiamato `tab_sintesi_hiv`.
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+tab_sintesi_hiv <- sintesi_hiv %>%
+  flextable() %>%
+  set_header_labels(
+    hiv_status         = "Stato HIV",
+    n                  = "Persone",
+    perc_donne         = "% donne",
+    eta_mediana        = "Età mediana",
+    perc_60            = "% 60+",
+    perc_charlson_3piu = "% Charlson 3+",
+    anticorpi_mediana  = "Anticorpi mediani (BAU/mL)",
+    eventi             = "Eventi",
+    anni_persona       = "Anni-persona",
+    tasso_100          = "Tasso per 100 AP") %>%
+  autofit()
+
+tab_sintesi_hiv
+
+```
+
+</br>
+
+</details>
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+opts <- c(
+  "Sì: è un data frame come gli altri",
+  answer = "No: è una tabella fatta per essere mostrata, i calcoli vanno fatti prima su `sintesi_hiv`",
+  "Sì, ma solo con `summarise()`",
+  "Solo dopo averla esportata in Excel"
+)
+
+cat("Puoi usare `tab_sintesi_hiv` per altri calcoli, per esempio con `mutate()`?", longmcq(opts))
+```
+:::
+::::
+
+::: {.callout-tip appearance="default" icon="false"}
+## Approfondimento: rifinire e salvare una flextable
+
+`{flextable}` ha molte altre funzioni. Per esempio
+`colformat_double(big.mark = ".", decimal.mark = ",")` scrive i numeri
+decimali all'italiana (il separatore delle migliaia predefinito è la
+virgola), e `save_as_docx(tab_sintesi_hiv, path = "tabella.docx")` salva
+la tabella in un file Word.
+:::
+
+::: {.callout-tip appearance="default" icon="false"}
+## Approfondimento: tabelle da pubblicazione con `{gtsummary}`
+
+Per le tabelle da pubblicare in un articolo o in un report esistono
+pacchetti dedicati, per esempio `{gtsummary}` con la funzione
+`tbl_summary()`, che costruisce in un solo comando la classica "Tabella
+1" con le caratteristiche dei partecipanti per gruppo. In questo corso
+non li usiamo, ma è utile sapere che esistono.
+:::
+
+### Tassi per classe d'età e stato HIV
+
+```{=html}
+<!-- Tabella pensata per l'esercitazione del modulo 9 (report con
+     Quarto): il collega la riprende dal file tassi_eta_hiv.rds. -->
+```
+
+Nello script, sopra l'area di prova, crea la sezione "Tassi per classe
+d'età e stato HIV" (**Ctrl+Shift+R**) e costruisci un ultimo dataset
+aggregato, `tassi_eta_hiv`, con una riga per ogni combinazione di classe
+d'età di 10 anni (`age_cat`) e stato HIV, e per ciascuna:
+
+-   il numero di persone (`n`);
+-   il numero di eventi (`eventi`);
+-   gli anni-persona (`anni_persona`), arrotondati a una cifra decimale;
+-   il tasso per 100 anni-persona (`tasso_100`), arrotondato a una cifra
+    decimale.
+
+Togli all'inizio, con `filter()` come hai fatto nel Modulo 3, le righe
+con classe d'età mancante: sono pochissime persone. Poi
+salva la tabella nella cartella `output`, sia in formato
+RDS (`tassi_eta_hiv.rds`) sia in Excel (`tassi_eta_hiv.xlsx`).
+
+<details>
+
+<summary style="text-decoration: underline; color: darkgreen;">
+
+`r fontawesome::fa("lightbulb", fill = "gold")` Clicca per leggere un
+suggerimento
+
+</summary>
+
+</br>
+
+Per tenere solo le righe in cui la classe d'età è presente usa
+`!is.na()`. In `group_by()` metti prima
+`age_cat` e poi `hiv_status`, e chiudi il raggruppamento con
+`.groups = "drop"`. Per salvare usa `export()`, come nel Modulo 3:
+il formato dipende dall'estensione del file.
+
+</br>
+
+</details>
+
+<details>
+
+<summary style="text-decoration: underline; color: red;">
+
+`r fontawesome::fa("check", fill = "red")` Clicca per vedere la
+soluzione (provaci da solo prima!)
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+
+# Tassi per classe d'età e stato HIV --------------------------------------
+tassi_eta_hiv <- dati_clean %>%
+  # tolgo le poche persone con classe d'età mancante
+  filter(!is.na(age_cat)) %>%
+  group_by(age_cat, hiv_status) %>%
+  summarise(
+    n            = n(),
+    eventi       = sum(event),
+    anni_persona = sum(fu_days) / 365.25,
+    tasso_100    = eventi / anni_persona * 100,
+    .groups = "drop") %>%
+  mutate(
+    anni_persona = round(anni_persona, 1),
+    tasso_100    = round(tasso_100, 1))
+
+tassi_eta_hiv
+
+```
+
+```{r}
+#| echo: true
+#| eval: false
+
+export(tassi_eta_hiv, "output/tassi_eta_hiv.rds")
+export(tassi_eta_hiv, "output/tassi_eta_hiv.xlsx")
+
+```
+
+</br>
+
+</details>
+
+```{=html}
+<!-- DIPENDE DAI DATI: presuppone che il tasso sia più alto con HIV in
+     tutte le classi d'età -->
+```
+
+:::: {.callout-note appearance="minimal" icon="false"}
+**Prova a rispondere!**
+
+::: webex-check
+```{r}
+#| results: asis
+#| echo: false
+opts <- c(
+  "Solo nelle classi sotto i 60 anni",
+  "Solo nelle classi dai 60 anni in su",
+  answer = "In tutte le classi d'età",
+  "In nessuna classe d'età"
+)
+
+cat("Guardando `tassi_eta_hiv`, in quali classi d'età il tasso è più alto tra le persone con HIV?", longmcq(opts))
+```
+:::
+::::
+
+## Lo script completo
+
+Ecco come dovrebbe essere la parte del tuo script relativa a questa
+esercitazione. Contiene solo i risultati da tenere: i comandi che hai
+scritto nell'area di prova possono essere diversi e non servono per le
+prossime esercitazioni. Lo script completo lo trovi anche nella cartella
+`script/backup`, nel file `backup_tabelle_grouping.R`.
+
+<details>
+
+<summary style="text-decoration: underline; color: blue;">
+
+`r fontawesome::fa("check", fill = "blue")` Clicca per vedere lo script
+completo
+
+</summary>
+
+</br>
+
+```{r}
+#| echo: true
+#| eval: false
+
+### Corso introduttivo a R
+### Obiettivo: tabelle e aggregazione dei dati (Modulo 4)
+### Autore: Marco Rossi
+### Data di creazione: 1 dicembre 2026
+### Contatto: marco.rossi@iss.it
+
+
+# Caricamento pacchetti ---------------------------------------------------
+pacman::p_load(
+  rio,       # importazione ed esportazione dei dati
+  skimr,     # panoramica dei dati
+  janitor,   # pulizia dei dati e tabelle
+  lubridate, # lavorare con le date
+  epikit,    # classi di età
+  gtsummary, # tabelle descrittive
+  flextable, # tabelle da presentare
+  tidyverse  # gestione e visualizzazione dei dati
+)
+
+
+# Importazione dati -------------------------------------------------------
+dati_clean <- import("dati/dati_clean.rds")
+
+
+# Tabelle di frequenza ----------------------------------------------------
+tab_sesso <- dati_clean %>%
+  count(sex) %>%
+  mutate(perc = round(n / sum(n) * 100, 1))
+
+tab_regione <- dati_clean %>%
+  tabyl(region) %>%
+  arrange(desc(n)) %>%
+  adorn_totals() %>%
+  adorn_pct_formatting(digits = 1)
+
+
+# Tabelle a doppia entrata ------------------------------------------------
+tab_hiv_eta <- dati_clean %>%
+  tabyl(hiv_status, age_group) %>%
+  adorn_percentages("row") %>%
+  adorn_pct_formatting(digits = 1) %>%
+  adorn_ns()
+
+
+# Statistiche per gruppo --------------------------------------------------
+tassi_eta <- dati_clean %>%
+  group_by(age_cat) %>%
+  summarise(
+    n            = n(),
+    eventi       = sum(event),
+    anni_persona = sum(fu_days) / 365.25,
+    tasso_100    = eventi / anni_persona * 100) %>%
+  mutate(tasso_100 = round(tasso_100, 2))
+
+quota_hiv_eta <- dati_clean %>%
+  group_by(hiv_status, age_group) %>%
+  summarise(n = n(), .groups = "drop") %>%
+  mutate(perc = n / sum(n) * 100)
+
+
+# Sintesi per stato HIV ---------------------------------------------------
+sintesi_hiv <- dati_clean %>%
+  group_by(hiv_status) %>%
+  summarise(
+    n                  = n(),
+    perc_donne         = mean(sex == "F", na.rm = TRUE) * 100,
+    eta_mediana        = median(age, na.rm = TRUE),
+    perc_60            = mean(age >= 60, na.rm = TRUE) * 100,
+    perc_charlson_3piu = mean(chrls_index == "3-4" |
+                              chrls_index == "5+") * 100,
+    anticorpi_mediana  = median(anticorpi),
+    eventi             = sum(event),
+    anni_persona       = sum(fu_days) / 365.25,
+    tasso_100          = eventi / anni_persona * 100,
+    .groups = "drop") %>%
+  mutate(
+    perc_donne         = round(perc_donne, 1),
+    perc_60            = round(perc_60, 1),
+    perc_charlson_3piu = round(perc_charlson_3piu, 1),
+    anni_persona       = round(anni_persona, 1),
+    tasso_100          = round(tasso_100, 1))
+
+tab_sintesi_hiv <- sintesi_hiv %>%
+  flextable() %>%
+  set_header_labels(
+    hiv_status         = "Stato HIV",
+    n                  = "Persone",
+    perc_donne         = "% donne",
+    eta_mediana        = "Età mediana",
+    perc_60            = "% 60+",
+    perc_charlson_3piu = "% Charlson 3+",
+    anticorpi_mediana  = "Anticorpi mediani (BAU/mL)",
+    eventi             = "Eventi",
+    anni_persona       = "Anni-persona",
+    tasso_100          = "Tasso per 100 AP") %>%
+  autofit()
+
+
+# Tassi per classe d'età e stato HIV --------------------------------------
+tassi_eta_hiv <- dati_clean %>%
+  filter(!is.na(age_cat)) %>%
+  group_by(age_cat, hiv_status) %>%
+  summarise(
+    n            = n(),
+    eventi       = sum(event),
+    anni_persona = sum(fu_days) / 365.25,
+    tasso_100    = eventi / anni_persona * 100,
+    .groups = "drop") %>%
+  mutate(
+    anni_persona = round(anni_persona, 1),
+    tasso_100    = round(tasso_100, 1))
+
+export(tassi_eta_hiv, "output/tassi_eta_hiv.rds")
+export(tassi_eta_hiv, "output/tassi_eta_hiv.xlsx")
+
+
+# Area di prova -----------------------------------------------------------
+# (il contenuto può variare)
+```
+
+</br>
+
+</details>
+
+Salva lo script e avvisa il docente che hai finito. Se non hai
+completato l'esercizio, nella cartella `script/backup` trovi la versione
+corretta di `backup_tabelle_grouping.R`.
+
+## Riepilogo
+
+In questo modulo hai imparato a:
+
+-   contare le righe per una o più variabili con `count()`, che
+    restituisce un data frame, e calcolare le percentuali con
+    `mutate(perc = n / sum(n) * 100)`;
+-   costruire tabelle di frequenza con `tabyl()`, che mostra sempre i
+    valori mancanti e aggiunge `valid_percent` (con `show_na = FALSE` si
+    escludono);
+-   ordinare le righe di una tabella con `arrange()` (e `desc()` per
+    l'ordine decrescente), o con `sort = TRUE` dentro `count()`;
+-   aggiungere con le funzioni `adorn_*()` totali, percentuali di riga o
+    di colonna, formattazione e conteggi tra parentesi: prima si calcola
+    e si ordina, poi si "adorna";
+-   ridurre un data frame a una riga di sintesi con `summarise()`, e a
+    una riga per gruppo con `group_by()`;
+-   chiudere il raggruppamento che resta dopo `summarise()` con
+    `.groups = "drop"` o `ungroup()`;
+-   escludere i valori mancanti con `na.rm = TRUE`, dopo essersi chiesti
+    che cosa significano;
+-   contare le righe che soddisfano una condizione con `sum(condizione)`
+    e calcolarne la proporzione con `mean(condizione)`;
+-   calcolare dentro i gruppi mantenendo tutte le righe con `group_by()`
+    e `mutate()`;
+-   distinguere le tabelle per esplorare (nell'area di prova) dai
+    dataset aggregati e dalle tabelle da presentare (salvati in un
+    oggetto, nello script);
+-   presentare una tabella con `flextable()`, `set_header_labels()` e
+    `autofit()`: serve per mostrare, non per calcolare.
+
+## Risorse aggiuntive
+
+| Argomento | Risorsa |
+|---------------------------------------|---------------------------------|
+| `tabyl()` e funzioni `adorn_*()` | Documentazione di `{janitor}`: <https://sfirke.github.io/janitor/articles/tabyls.html> |
+| `summarise()` | Documentazione di `{dplyr}`: <https://dplyr.tidyverse.org/reference/summarise.html> |
+| Trasformazione dei dati | *R for Data Science* (2ª edizione): <https://r4ds.hadley.nz/data-transform> |
+| Raggruppare i dati e tabelle descrittive | *The Epidemiologist R Handbook*, capitoli "Grouping data" e "Descriptive tables": <https://epirhandbook.com/> |
+
+```{=html}
+<!-- Sezione Autori in sospeso: da definire
+
+**Autori**
+
+Autori originali: Andrea Cannone (Istituto Superiore di Sanità)\
+Fonte dei dati: dataset didattico del corso, con la struttura di una
+coorte di persone vaccinate contro COVID-19 con e senza HIV; esercizi
+ispirati al modulo *Grouping and summarizing data* di Applied Epi
+(<https://appliedepi.org>)\
+Adattato da: Chiara Sacco (Istituto Superiore di Sanità)
+-->
+```

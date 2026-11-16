@@ -1,0 +1,114 @@
+---
+title: |
+  ![](immagini/logo_dmi.png){width=3in}
+lang: it
+format:
+  html:
+    toc: true
+    toc-depth: 2
+editor:
+  markdown:
+    wrap: 72
+---
+
+# **Corso introduttivo al software statistico R**
+
+# Prepararsi al corso
+
+Prima dell'inizio del corso è necessario installare i programmi e i
+pacchetti che useremo e scaricare la cartella con i dati. Ti chiediamo
+di farlo **qualche giorno prima del corso**, così da avere il tempo di
+risolvere eventuali problemi.
+
+## Installare R, RTools e RStudio
+
+Sul tuo computer devono essere installati R, RTools (solo Windows) e
+RStudio, preferibilmente in quest'ordine: **R → RTools → RStudio**.
+
+::: callout-warning
+## Attenzione ai permessi di amministratore
+
+L'installazione di RStudio e di RTools di solito richiede i diritti di
+amministratore. Assicurati di fare il GRISSI per le credenziali temporanee
+:::
+
+### R
+
+Scarica R da [CRAN](https://cran.r-project.org/), nella sezione
+"Download and Install R", scegliendo la versione per il tuo sistema
+operativo (Windows, macOS o Linux).
+
+-   L'ultima versione disponibile è la 4.6.1 (24 giugno 2026). **Non è
+    obbligatorio avere l'ultima versione**, ma è consigliabile non
+    restare troppo indietro.
+-   Sullo stesso computer possono essere installate più versioni di R.
+    In questo caso, controlla che RStudio usi la più recente: menu
+    **Tools \> Global Options \> General \> R version**.
+
+### RTools (solo Windows)
+
+RTools serve per installare alcuni pacchetti a partire dal codice
+sorgente. Scaricalo da [questa
+pagina](https://cloud.r-project.org/bin/windows/Rtools/) scegliendo la
+versione che corrisponde alla tua versione di R (per esempio RTools 4.6
+per R 4.6.x).
+
+Su macOS non è necessario installare Rtools
+
+### RStudio
+
+Scarica [RStudio Desktop](https://posit.co/download/rstudio-desktop/).
+
+## Installare i pacchetti
+
+Apri RStudio, copia il codice qui sotto nella **Console** e premi
+Invio. [L'installazione può richiedere diversi minuti.]{.underline}
+
+```{r}
+#| eval: false
+# Installa {pacman} se non è già presente
+if (!require("pacman")) install.packages("pacman")
+
+# Installa (o aggiorna) e carica i pacchetti del corso
+pacman::p_load(
+  rio,          # importare ed esportare i dati
+  here,         # percorsi relativi dei file
+  janitor,      # pulizia dei dati e tabelle
+  skimr,        # panoramica dei dati
+  lubridate,    # gestione delle date
+  epikit,       # classi d'età
+  gtsummary,    # tabelle descrittive
+  flextable,    # tabelle per i report
+  sf,           # dati spaziali e mappe
+  apyramid,     # piramidi per età e sesso
+  tidyverse     # gestione e visualizzazione dei dati
+)
+```
+
+Se al termine non compaiono messaggi di errore (in rosso, con la parola
+`Error`), i pacchetti sono installati correttamente. Gli avvisi
+(`Warning`) di solito si possono ignorare.
+
+Se un pacchetto non si installa e R chiede *"Do you want to install from sources the packages which
+    need compilation?"*, rispondi `no`: verrà installata la versione già
+    pronta del pacchetto. Se invece l'errore riguarda un solo pacchetto, prova a installarlo da solo,
+    per esempio con `install.packages("sf")`, e poi esegui di nuovo il
+    codice qui sopra.Se il problema persiste, copia il messaggio di errore e mandalo ai
+    responsabili del corso prima dell'inizio.
+
+
+## Scaricare i materiali del corso
+
+Per scaricare le cartelle e i dati del corso, [clicca qui](materiali_corso_R.zip) e salva il
+file compresso. Estrai la cartella `materiali_corso_R` in un punto
+qualsiasi del tuo computer (per esempio in Documenti): durante il corso
+lavorerai al suo interno.
+
+La cartella contiene tre sottocartelle:
+
+-   `script`: durante il corso ci salverai gli script che scriverai.
+    Contiene la sottocartella `backup`, con le versioni corrette degli
+    script del corso;
+-   `dati`, con i dati usati nelle esercitazioni;
+-   `output`, vuota: durante il corso ci salverai i grafici e le
+    tabelle che produrrai.
