@@ -142,7 +142,7 @@ cat("Domanda di esempio: quanto fa 2 + 2?", longmcq(opts))
 :::
 
 Lungo il modulo troverai anche due tipi di riquadri colorati. I
-riquadri **gialli** segnalano errori frequenti o punti in cui R si
+riquadri **arancioni** segnalano errori frequenti o punti in cui R si
 comporta in modo inatteso: leggili sempre, perché possono farti
 risparmiare tempo.
 
