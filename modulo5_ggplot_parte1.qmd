@@ -2402,27 +2402,36 @@ ggsave(
 
 ## Riepilogo
 
--   Un grafico `{ggplot2}` si costruisce per strati (*layers*) collegati
-    con `+`: dati (`ggplot()`), estetiche (`aes()`) e geom (`geom_*()`).
-    Il `+` va alla fine della riga, non all'inizio della successiva
--   Estetiche **dinamiche** (una variabile) dentro `aes()`; estetiche
-    **statiche** (un valore fisso) dentro il geom
--   Una variabile numerica usata come categoria dà una scala continua:
-    per le categorie serve un fattore, come `hiv` creata nel Modulo 3 e
-    `covid` creata in questo modulo da `event`
--   `geom_bar()` conta le righe; `geom_col()` usa valori già aggregati
--   `geom_jitter()` e `geom_boxplot()` confrontano una variabile
-    continua tra gruppi; `geom_point()` mostra la relazione tra due
-    variabili e `geom_smooth()` ne aggiunge la tendenza;
-    `geom_histogram()` mostra la distribuzione di una variabile
--   Più livelli `geom_` si sovrappongono nell'ordine in cui sono
-    scritti. Le estetiche dentro `ggplot()` valgono per tutti i livelli,
-    quelle dentro un geom (`mapping = aes()`) solo per quel livello
--   `alpha` regola la trasparenza, da 0 (invisibile) a 1 (coprente):
-    serve quando molti punti si sovrappongono
--   `labs()` per le etichette, `facet_wrap()` per i pannelli,
-    `scale_x_date()` con `scales::label_date(locale = "it")` per le date
-    in italiano, `ggsave()` per salvare
+In questo modulo hai imparato a:
+
+-   costruire un grafico `{ggplot2}` per strati (*layers*) collegati con
+    `+`: dati (`ggplot()`), estetiche (`aes()`) e geom (`geom_*()`),
+    mettendo il `+` alla fine della riga e non all'inizio della
+    successiva;
+-   distinguere le estetiche dinamiche (una variabile), da scrivere
+    dentro `aes()`, da quelle statiche (un valore fisso), da scrivere
+    dentro il geom;
+-   usare un fattore per rappresentare le categorie, perché una
+    variabile numerica dà una scala continua (come `hiv`, creata nel
+    Modulo 3, e `covid`, creata in questo modulo da `event`);
+-   contare le righe con `geom_bar()` e rappresentare valori già
+    aggregati con `geom_col()`;
+-   confrontare una variabile continua tra gruppi con `geom_jitter()` e
+    `geom_boxplot()`;
+-   mostrare la relazione tra due variabili con `geom_point()` e
+    aggiungerne la tendenza con `geom_smooth()`;
+-   mostrare la distribuzione di una variabile con `geom_histogram()`;
+-   sovrapporre più livelli `geom_`, che vengono disegnati nell'ordine
+    in cui sono scritti, ricordando che le estetiche dentro `ggplot()`
+    valgono per tutti i livelli e quelle dentro un geom
+    (`mapping = aes()`) solo per quel livello;
+-   regolare la trasparenza con `alpha`, da 0 (invisibile) a 1
+    (coprente), quando molti punti si sovrappongono;
+-   aggiungere le etichette con `labs()` e creare pannelli con
+    `facet_wrap()`;
+-   mostrare le date in italiano con `scale_x_date()` e
+    `scales::label_date(locale = "it")`;
+-   salvare il grafico con `ggsave()`.
     
 ## Risorse aggiuntive
 
