@@ -1499,7 +1499,7 @@ cat("Che differenza vedi tra le due piramidi?", longmcq(opts))
 :::
 ::::
 
-Guarda la legenda delle due piramidi: in una i maschi sono a sinistra, nell'altra a destra. `age_pyramid()` mette a sinistra il primo livello di `split_by`, e `sex` è una variabile di testo, i cui "livelli" dipendono dai dati. Crea una nuova sezione chiamata "Piramidi" sopra l'area di prova (**Ctrl+Shift+R**): qui trasforma `sex` in un `factor` con livelli `"M"` e `"F"`, come hai fatto per `hiv` nel Modulo 3, e rifai le due piramidi. CIAO
+Guarda la legenda delle due piramidi: in una i maschi sono a sinistra, nell'altra a destra. `age_pyramid()` mette a sinistra il primo livello di `split_by`, e `sex` è una variabile di testo, i cui "livelli" dipendono dai dati. Crea una nuova sezione chiamata "Piramidi" sopra l'area di prova (**Ctrl+Shift+R**): qui trasforma `sex` in un `factor` con livelli `"M"` e `"F"`, come hai fatto per `hiv` nel Modulo 3, e rifai le due piramidi.
 
 <details>
 
