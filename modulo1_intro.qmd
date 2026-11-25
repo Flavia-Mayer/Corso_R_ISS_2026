@@ -788,7 +788,7 @@ cat("Domanda: Qual è la media della variabile 'Charlson score'?", longmcq(opts)
 :::
 
 :::::::::
-
+<!-- non è stato spiegato il comando Run per lanciare il codice, può essere utile? -->
 
 ## Lo script completo
 
