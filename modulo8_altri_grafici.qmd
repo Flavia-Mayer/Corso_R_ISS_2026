@@ -1495,6 +1495,8 @@ opts <- c(
 
 cat("Che differenza vedi tra le due piramidi?", longmcq(opts))
 
+ciaosauhfauhf
+
 ```
 :::
 ::::
