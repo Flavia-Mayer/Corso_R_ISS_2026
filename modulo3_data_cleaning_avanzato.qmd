@@ -1423,7 +1423,7 @@ togliere le regioni E ed F e confronta il numero di righe:
 dati_clean %>% filter(region %in% c("A", "B", "C", "D")) %>% nrow()
 
 # togliere le regioni E ed F
-dati_clean %>% filter(region %in% c("A", "B", "C", "D") & !is.na(hiv_status)) %>% nrow()
+dati_clean %>% filter(!region %in% c("E", "F")) %>% nrow()
 ```
 
 Il punto esclamativo davanti alla condizione la nega:
