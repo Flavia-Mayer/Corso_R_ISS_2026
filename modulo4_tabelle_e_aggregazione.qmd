@@ -202,11 +202,11 @@ cat("Domanda di esempio: quanto fa 2 + 2?", longmcq(opts))
 ::::
 
 Lungo il modulo troverai anche due tipi di riquadri colorati. I riquadri
-**gialli** segnalano errori frequenti o punti in cui R si comporta in
+**arancioni** segnalano errori frequenti o punti in cui R si comporta in
 modo inatteso: leggili sempre, perché possono farti risparmiare tempo.
 
 ```{=html}
-<!-- ISTRUZIONI: Il box giallo "Attenzione a …" va usato per avvisi
+<!-- ISTRUZIONI: Il box arancione "Attenzione a …" va usato per avvisi
      importanti: errori comuni, comportamenti di R che possono
      sorprendere, passaggi da non saltare. Il titolo inizia sempre con
      "Attenzione a" (es. "Attenzione ai nomi con spazi"). Copia
@@ -1758,6 +1758,11 @@ nella console e con la riga `# Groups:` sopra la tabella. Se non lo
 chiudi, i calcoli successivi vengono fatti dentro i gruppi. Prendi
 l'abitudine di chiudere sempre il raggruppamento con `.groups = "drop"`
 oppure con `ungroup()`.
+
+Con `ungroup()` il messaggio nella console compare
+lo stesso: `summarise()` viene eseguita prima e non sa che dopo toglierai i gruppi.
+Il risultato però non è più raggruppato. Con `.groups = "drop"` invece il
+messaggio non compare.
 :::
 
 ## Valori mancanti e `na.rm`
@@ -2125,8 +2130,6 @@ Le tabelle che hai costruito finora servono a tre scopi diversi:
 -   **presentare** i risultati: tabelle finali da mostrare, in formato
     largo, con totali e percentuali formattate dalle funzioni
     `adorn_*()`, e rese più leggibili con `{flextable}`.
-
-Le ultime due le salvi in un oggetto e le scrivi nello script.
 
 :::: {.callout-note appearance="minimal" icon="false"}
 **Prova a rispondere!**
