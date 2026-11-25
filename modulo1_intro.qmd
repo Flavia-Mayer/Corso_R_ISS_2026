@@ -596,7 +596,7 @@ dati_raw <- import("dati/dataset_esercitazione_raw.csv")
 ```
 
 ### Leggere i dati
-
+<!-- di seguito usata la parola data frame per la prima volta, serve descrizione? -->
 Esistono diversi modi in cui puoi importare i vari data frame. Ci sono
 tre versioni del file che vogliamo leggere (`dataset_esercitazione_raw`):
 una è un file Excel, l'altra è un file csv e l'ultima è un file con
