@@ -1798,7 +1798,7 @@ quindi per ora copia nel tuo script solo la parte dei Moduli 1 e 2.
 ## Riepilogo
 
 In questo modulo hai imparato a:
-
+<!-- dim() non visto -->
 -   esplorare i dati con `dim()`, `names()`, `skim()`, `tabyl()` e
     `class()` per individuarne i problemi;
 -   costruire una catena di pulizia con l'operatore pipe `%>%`;
@@ -1809,7 +1809,7 @@ In questo modulo hai imparato a:
 -   trasformare in `NA` i codici di valore mancante e le celle vuote con
     `na_if()` (con la scorciatoia `across()` per più variabili insieme)
     e contare i mancanti con `is.na()`;
--   convertire le variabili nella classe corretta con `as.numeric()`;
+-   convertire le variabili nella classe corretta con `as.numeric()`, `as.character()`, `as.integer()`;
 -   convertire le stringhe in date con `{lubridate}` (`ymd()`, `dmy()`,
     `mdy()`, `parse_date_time()`);
 -   controllare sempre il risultato (`tabyl()`, `range()`,
