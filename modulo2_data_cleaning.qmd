@@ -311,7 +311,8 @@ da sbagliare.
 
 ::: {.callout-warning appearance="default" icon="false"}
 ## Attenzione ai nomi con spazi
-
+<!-- di seguito viene usato per la prima volta $ ma non viene spiegato, forse aggiungere una riga come 
+fatto alla riga 1078? -->
 Se il nome di una variabile contiene uno spazio, R non lo riconosce come
 un nome unico. `dati_raw$Age group` dà errore: il nome va racchiuso tra
 **apici inversi** (backtick, `` ` ``), cioè `` dati_raw$`Age group` ``.
